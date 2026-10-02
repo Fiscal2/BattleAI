@@ -1,0 +1,29 @@
+{
+  "name": "battleai",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.json && esbuild src/web/client.ts --bundle --outfile=public/client.js --format=esm",
+    "start": "node dist/server.js",
+    "dev": "esbuild src/web/client.ts --bundle --outfile=public/client.js --format=esm && tsx src/server.ts"
+  },
+  "dependencies": {
+    "argon2": "^0.45.1",
+    "better-sqlite3": "^13.0.3",
+    "fastify": "^5.12.5"
+  },
+  "devDependencies": {
+    "@fontsource/geist": "^5.3.0",
+    "@fontsource/geist-mono": "^5.3.0",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.6.3",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  }
+}
