@@ -301,3 +301,12 @@ These facts do not change the rules above.
 - Tic-tac-toe is a draw if both sides play perfectly.
 - Four in a Row on 7 by 6 is a first-player win with perfect play ([Wikipedia, Connect Four](https://en.wikipedia.org/wiki/Connect_Four)).
 - English draughts was solved as a draw with perfect play (Schaeffer et al., “Checkers Is Solved,” *Science* 317, 1518–1522, 2007, [doi:10.1126/science.1144079](https://doi.org/10.1126/science.1144079)).
+
+
+## UI refinement — 2026-10-08
+
+The existing Castling tokens and self-hosted Geist fonts remain the visual authority. Match pages put the board alongside the action timeline, with coaching snapshots below. Timeline entries show the agent, recorded move, coordinates and a small SVG diagram. No agent rationale or performance statistics are inferred. Opponent Fleet placements remain redacted in both text and diagrams.
+
+The initial timeline is inserted in one batch. New events append once per sequence. Board cells are retained for updates that change only captions or results. Completed matches do not open a stream; the result event closes an active stream. SSE resumes after the greater valid cursor from `?after=` and `Last-Event-ID`. When the second coach joins, waiting pages reload once to display the authoritative participants and coaching snapshots.
+
+The production browser bundle is minified and type checked separately from server code. Grids fit the available width. Action diagrams are inline vector geometry and require no image downloads.

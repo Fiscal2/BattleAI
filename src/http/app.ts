@@ -10,6 +10,8 @@ import { gameById, isGameId } from "../rules/index.js";
 import type { GameId, Seat } from "../rules/types.js";
 import type { Coach, EventRow, Store } from "../store/db.js";
 import { escapeHtml, field, page } from "./page.js";
+import { gameGraphic } from "./graphics.js";
+import { resumeCursor } from "./cursor.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const fonts: Record<string, string> = {
@@ -181,13 +183,16 @@ export function createApp(input: { store: Store; env: NodeJS.ProcessEnv; complet
       page({
         title: "Agent",
         coachName: coach.display_name,
-        body: `<p class="eyebrow">Coaching</p><h1 class="page-title">Agent</h1>
-          <form class="panel form" method="post" action="/agent">
+        body: `<div class="page-heading"><h1 class="page-title">Agent</h1><p class="body">Set the approach. Your agent makes the moves.</p></div>
+          <div class="editor-layout"><form class="panel form" method="post" action="/agent">
+            <div class="form-heading"><h2 class="section-title">Coaching</h2><p class="body">These instructions are copied when a match starts.</p></div>
             ${field("Persona", "persona", agent.persona, { multiline: true })}
             ${field("Playbook", "playbook", agent.playbook, { multiline: true })}
             ${field("Context", "context", agent.context, { multiline: true })}
-            <button class="pill pill-primary" type="submit">Save agent</button>
-          </form>`,
+            <div class="form-footer"><span class="body">Changes apply to future matches.</span><button class="pill pill-primary" type="submit">Save agent</button></div>
+          </form><aside class="coaching-guide" aria-label="Coaching guide"><h2 class="section-title">A clear game plan</h2>
+            <dl><dt>Persona</dt><dd>The temperament and priorities your agent should follow.</dd><dt>Playbook</dt><dd>Concrete tactics, openings, and responses to threats.</dd><dt>Context</dt><dd>Lessons and instructions to carry into the next match.</dd></dl>
+            <div class="guide-rule"></div><p class="body">Once play begins, the agent acts independently. Both coaching snapshots are visible on the match page.</p></aside></div>`,
       }),
     );
   });
@@ -217,19 +222,15 @@ export function createApp(input: { store: Store; env: NodeJS.ProcessEnv; complet
       page({
         title: "Matches",
         coachName: coach.display_name,
-        body: `<p class="eyebrow">Record</p><h1 class="page-title">Matches</h1>
-          <form class="panel form" method="post" action="/matches">
-            <label class="field"><span class="label-caps">Game</span>
-              <select name="gameId">
-                <option value="tictactoe">Tic-tac-toe</option>
-                <option value="four">Four in a Row</option>
-                <option value="checkers">Checkers</option>
-                <option value="fleet">Fleet</option>
-              </select>
-            </label>
-            <button class="pill pill-primary" type="submit">Create match</button>
+        body: `<div class="page-heading"><h1 class="page-title">Matches</h1><p class="body">Choose a game, invite a coach, and watch your agents play.</p></div>
+          <form class="panel match-create" method="post" action="/matches">
+            <fieldset class="game-picker"><legend class="section-title">Choose your arena</legend>
+              ${(Object.keys(labels) as GameId[]).map((gameId, index) => `<label class="game-option"><input type="radio" name="gameId" value="${gameId}"${index === 0 ? " checked" : ""}><span class="game-choice">${gameGraphic(gameId)}<span class="game-name">${labels[gameId]}</span><span class="game-description">${gameId === "fleet" ? "Hidden fleets · 10 × 10" : gameId === "checkers" ? "English draughts · 8 × 8" : gameId === "four" ? "Gravity · 7 × 6" : "Three in a line · 3 × 3"}</span><span class="choice-indicator" aria-hidden="true"></span></span></label>`).join("")}
+            </fieldset>
+            <div class="form-footer"><p class="body">Share the match link with your opponent.</p><button class="pill pill-primary" type="submit">Create match <span aria-hidden="true">→</span></button></div>
           </form>
-          <div class="records">${list || `<p class="body">No finished matches yet.</p>`}</div>`,
+          <section class="records-section"><div class="section-heading"><h2 class="section-title">Match record</h2><span class="count-badge">${rows.length}</span></div>
+          <div class="records">${list || `<div class="empty-record">${gameGraphic("four")}<div><h3>No finished matches yet</h3><p class="body">Completed matches and their replays will appear here.</p></div></div>`}</div></section>`,
       }),
     );
   });
@@ -270,7 +271,7 @@ export function createApp(input: { store: Store; env: NodeJS.ProcessEnv; complet
     const id = (request.params as { id: string }).id;
     const match = input.store.getMatch(id);
     if (!match) return reply.code(404).send("Match not found.");
-    const after = Number((request.query as { after?: string }).after ?? 0);
+    const after = resumeCursor((request.query as { after?: string }).after, request.headers["last-event-id"]);
     const viewer = viewerFor(input.store, id, coachOf(request));
     const game = gameById(match.game_id)!;
     reply.hijack();
@@ -279,6 +280,8 @@ export function createApp(input: { store: Store; env: NodeJS.ProcessEnv; complet
       "cache-control": "no-cache",
       connection: "keep-alive",
     });
+    // An idle waiting match has no body yet; announce the live connection immediately.
+    reply.raw.flushHeaders();
     const seen = new Set<number>();
     const send = (event: EventRow) => {
       if (seen.has(event.seq) || event.seq <= after) return;
@@ -299,7 +302,7 @@ export function createApp(input: { store: Store; env: NodeJS.ProcessEnv; complet
     for (const event of input.store.events(id)) send(event);
     live = true;
     for (const event of pending) send(event);
-    request.raw.on("close", unsubscribe);
+    reply.raw.on("close", unsubscribe);
   });
 
   startLoops({
@@ -327,14 +330,17 @@ function authPage(title: string, action: string, submit: string, error = ""): st
   const email = action === "/login";
   return page({
     title,
-    body: `<p class="eyebrow">Coach</p><h1 class="page-title">${escapeHtml(title)}</h1>
-      ${error ? `<p class="error">${escapeHtml(error)}</p>` : ""}
-      <form class="panel form" method="post" action="${action}">
+    body: `<div class="auth-layout"><section class="auth-intro"><div class="arena-diagram" aria-hidden="true">${gameGraphic("tictactoe")}${gameGraphic("four")}${gameGraphic("checkers")}${gameGraphic("fleet")}</div>
+      <h1 class="page-title">${escapeHtml(title)}</h1><p class="body">Coach your agent. Watch it compete.</p><p class="auth-note body">Four games. Two agents. Every move recorded.</p></section>
+      <section class="auth-form"><h2 class="section-title">${email ? "Welcome back" : "Your place on the sideline"}</h2>
+      ${error ? `<p class="error" role="alert">${escapeHtml(error)}</p>` : ""}
+      <form class="form" method="post" action="${action}">
         ${field("Email", "email", "", { type: "email" })}
         ${email ? "" : field("Display name", "displayName")}
         ${field("Password", "password", "", { type: "password" })}
+        ${email ? "" : '<p class="field-help">Use at least 8 characters for your password.</p>'}
         <button class="pill pill-primary" type="submit">${escapeHtml(submit)}</button>
-      </form>`,
+      </form><p class="auth-switch body">${email ? 'New here? <a href="/register">Create a coach</a>' : 'Already registered? <a href="/login">Log in</a>'}</p></section></div>`,
   });
 }
 
@@ -358,10 +364,9 @@ function matchPage(store: Store, id: string, coach: Coach | undefined, error = "
         playbook?: string;
         context?: string;
       };
-      return `<article class="panel snapshot"><h2 class="card-title">${escapeHtml(names[String(seat.seat)] || "Seat")}</h2>
-        <p class="label-caps">Persona</p><p>${escapeHtml(snap.persona || "—")}</p>
-        <p class="label-caps">Playbook</p><p>${escapeHtml(snap.playbook || "—")}</p>
-        <p class="label-caps">Context</p><p>${escapeHtml(snap.context || "—")}</p></article>`;
+      const ready = Boolean(snap.persona || snap.playbook || snap.context);
+      return `<article class="panel snapshot seat-${seat.seat}"><div class="snapshot-heading"><span class="agent-avatar" aria-hidden="true">${escapeHtml((names[String(seat.seat)] || "?").slice(0, 1))}</span><div><h3 class="card-title">${escapeHtml(names[String(seat.seat)] || "Seat")}</h3><span class="snapshot-tag">${match.status === "waiting" ? "Snapshot available at match start" : "Coaching snapshot"}</span></div></div>
+        ${ready ? `<dl class="snapshot-fields"><dt>Persona</dt><dd>${escapeHtml(snap.persona || "—")}</dd><dt>Playbook</dt><dd>${escapeHtml(snap.playbook || "—")}</dd><dt>Context</dt><dd>${escapeHtml(snap.context || "—")}</dd></dl>` : `<p class="body">${match.status === "waiting" ? "Coaching will be copied when the second coach joins." : "No coaching instructions were provided."}</p>`}</article>`;
     })
     .join("");
   const boot = {
@@ -370,21 +375,23 @@ function matchPage(store: Store, id: string, coach: Coach | undefined, error = "
     view,
     names,
     game: match.game_id,
+    status: match.status,
+    firstSeat: match.first_seat,
+    result: match.result ? { result: match.result, winnerSeat: match.winner_seat, forfeitSeat: match.forfeit_seat, forfeitCause: match.forfeit_cause } : null,
   };
-  const dot = match.status === "finished" ? "" : `<span class="dot ${match.status}"></span>`;
+  const dot = `<span class="dot ${match.status}" aria-hidden="true"></span>`;
+  const heading = `<span>${escapeHtml(names["0"] || "Open seat")}</span><span class="versus">vs</span><span>${escapeHtml(names["1"] || "Open seat")}</span>`;
+  const participants = ([0, 1] as const).map((seat) => `<div class="participant seat-${seat}"><span class="agent-avatar" aria-hidden="true">${escapeHtml((names[String(seat)] || "?").slice(0, 1))}</span><span class="participant-name">${escapeHtml(names[String(seat)] || "Open seat")}</span><span class="participant-role">${mine?.seat === seat ? "Your agent" : "Agent " + (seat + 1)}</span></div>`).join('<span class="participant-divider" aria-hidden="true">/</span>');
   return page({
     title: labels[match.game_id],
     coachName: coach?.display_name,
-    body: `<p class="eyebrow">${escapeHtml(labels[match.game_id])}</p>
-      <div class="status-row"><h1 class="page-title">${escapeHtml(names["0"] || "Open seat")} vs ${escapeHtml(names["1"] || "Open seat")}</h1>
-      <p class="status-pill">${dot}${escapeHtml(match.status)}</p></div>
-      ${error ? `<p class="error">${escapeHtml(error)}</p>` : ""}
-      ${canJoin ? `<form method="post" action="/matches/${id}/join"><button class="pill pill-primary" type="submit">Join</button></form>` : ""}
-      <div class="board-frame"><div id="board"></div></div>
-      <div class="split">
-        <section><h2 class="section-title">Events</h2><ol id="events" class="events"></ol></section>
-        <section class="snapshots">${snapshots}</section>
-      </div>
+    body: `<div class="match-page first-seat-${match.first_seat ?? 0}"><div class="match-toolbar"><a class="back-link" href="${coach ? "/matches" : "/login"}">← ${coach ? "Matches" : "Log in"}</a><div class="match-meta"><span class="game-badge">${gameGraphic(match.game_id)}${labels[match.game_id]}</span><span class="view-label">${viewer === "spectator" ? "Spectator view" : "Your seat"}</span></div></div>
+      <div class="status-row"><h1 class="page-title match-title">${heading}</h1><p class="status-pill" role="status">${dot}<span id="match-status">${match.status === "finished" ? "Finished" : match.status === "waiting" ? "Waiting for opponent" : "In progress"}</span></p></div>
+      ${error ? `<p class="error" role="alert">${escapeHtml(error)}</p>` : ""}
+      ${match.status === "waiting" ? `<div class="waiting-notice"><p class="body">${canJoin ? "Take the open seat to start this match." : "Share this page’s URL with another coach to start the match."}</p>${canJoin ? `<form method="post" action="/matches/${id}/join"><button class="pill pill-primary" type="submit">Join match</button></form>` : ""}</div>` : ""}
+      <div class="arena-layout"><section class="board-frame" aria-label="Game position"><div class="arena-header"><h2 class="section-title">The board</h2><span class="board-game-name">${labels[match.game_id]}</span></div><div class="participant-rail">${participants}</div><div id="board" class="board-stage"></div><div class="arena-footer"><span class="latest-key"><span aria-hidden="true"></span>Latest move</span><span>${match.game_id === "fleet" && viewer === "spectator" ? "Both fleets visible" : "Server-validated moves"}</span></div></section>
+        <section class="activity-panel" aria-labelledby="activity-title"><div class="activity-header"><div class="section-heading"><h2 id="activity-title" class="section-title">Agent activity</h2><span id="event-count" class="count-badge">${events.length}</span></div><p id="connection-status" class="connection-status" role="status">${match.status === "finished" ? "Match complete" : "Connecting…"}</p></div><ol id="events" class="events" tabindex="0" aria-label="Agent action history"></ol></section></div>
+      <section class="coaching-section"><div class="section-heading"><h2 class="section-title">Behind the moves</h2><span class="snapshot-tag">${match.status === "waiting" ? "Copied when play begins" : "Instructions at match start"}</span></div><div class="snapshots">${snapshots}</div></section></div>
       <script id="boot" type="application/json">${JSON.stringify(boot).replaceAll("<", "\\u003c")}</script>
       <script>window.__events = ${JSON.stringify(events).replaceAll("<", "\\u003c")};</script>
       <script type="module" src="/client.js"></script>`,

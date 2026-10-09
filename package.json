@@ -7,7 +7,7 @@
   },
   "scripts": {
     "test": "vitest run",
-    "build": "tsc -p tsconfig.json && esbuild src/web/client.ts --bundle --outfile=public/client.js --format=esm",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.web.json && esbuild src/web/client.ts --bundle --minify --outfile=public/client.js --format=esm",
     "start": "node dist/server.js",
     "dev": "esbuild src/web/client.ts --bundle --outfile=public/client.js --format=esm && tsx src/server.ts"
   },

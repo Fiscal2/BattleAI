@@ -1,52 +1,6 @@
-type Seat = 0 | 1;
-type Outcome = "ongoing" | { winner: Seat } | "draw";
-
-type Boot = {
-  matchId: string;
-  seq: number;
-  view: View | null;
-  names: Record<string, string>;
-  game: string;
-};
-
-type View =
-  | {
-      game: "tictactoe";
-      cells: Array<"X" | "O" | null>;
-      turn: Seat | null;
-      lastCell: string | null;
-      outcome: Outcome;
-    }
-  | {
-      game: "four";
-      grid: Array<Array<"A" | "B" | null>>;
-      turn: Seat | null;
-      last: { column: number; row: number } | null;
-      outcome: Outcome;
-    }
-  | {
-      game: "checkers";
-      pieces: Record<string, "red-man" | "red-king" | "white-man" | "white-king">;
-      turn: Seat | null;
-      lastPath: number[] | null;
-      outcome: Outcome;
-    }
-  | {
-      game: "fleet";
-      phase: "place" | "shoot" | "done";
-      turn: Seat | null;
-      ships: Array<{ seat: Seat; length: number; cells: string[]; sunk: boolean }>;
-      shots: Array<{ seat: Seat; cell: string; hit: boolean }>;
-      lastShot: { seat: Seat; cell: string } | null;
-      outcome: Outcome;
-    };
-
-type ShownEvent = { seq: number; type: string; payload: Record<string, unknown> };
-
-const boot = JSON.parse(document.querySelector<HTMLScriptElement>("#boot")!.textContent || "{}") as Boot;
-const board = document.querySelector<HTMLElement>("#board")!;
-const events = document.querySelector<HTMLOListElement>("#events")!;
-const seen = new Set<number>();
+import { createBoardRenderer } from "./board.js";
+import { eventCard, resultText } from "./feed.js";
+import { agentName, isSeat, type Boot, type MatchResult, type ShownEvent, type View } from "./types.js";
 
 declare global {
   interface Window {
@@ -54,159 +8,122 @@ declare global {
   }
 }
 
-for (const event of window.__events ?? []) addEvent(event);
-if (boot.view) render(boot.view);
-else board.innerHTML = `<p class="waiting">Waiting for the second coach.</p>`;
+export function startClient(document: Document, initialEvents: ShownEvent[], createSource: (url: string) => EventSource, refresh?: () => void) {
+  const boot = JSON.parse(document.querySelector<HTMLScriptElement>("#boot")!.textContent || "{}") as Boot;
+  const board = document.querySelector<HTMLElement>("#board")!;
+  const events = document.querySelector<HTMLOListElement>("#events")!;
+  const count = document.querySelector<HTMLElement>("#event-count");
+  const connection = document.querySelector<HTMLElement>("#connection-status");
+  const status = document.querySelector<HTMLElement>("#match-status") ?? document.querySelector<HTMLElement>(".status-pill");
+  const dot = document.querySelector<HTMLElement>(".status-pill .dot");
+  const page = document.querySelector<HTMLElement>(".match-page");
+  const seen = new Set<number>();
+  let view = boot.view;
+  let result = boot.result ?? null;
+  let finished = boot.status === "finished" || result !== null;
+  let refreshing = false;
+  let source: EventSource | null = null;
+  const context = { game: boot.game, names: { ...boot.names }, firstSeat: boot.firstSeat, view };
 
-const source = new EventSource(`/matches/${boot.matchId}/events?after=${boot.seq}`);
-source.onmessage = (message) => {
-  const data = JSON.parse(message.data) as { event: ShownEvent; view: View | null };
-  addEvent(data.event);
-  if (data.view) render(data.view);
-  const status = document.querySelector(".status-pill");
-  if (status && data.view && data.view.outcome !== "ongoing") {
-    status.textContent = data.view.outcome === "draw" ? "draw" : "finished";
+  function learn(event: ShownEvent) {
+    if (event.type === "seated" && isSeat(event.payload.seat) && typeof event.payload.displayName === "string") {
+      context.names[String(event.payload.seat)] = event.payload.displayName;
+    }
+    if (!isSeat(context.firstSeat) && boot.game !== "fleet" && event.type === "action" && isSeat(event.payload.seat)) {
+      context.firstSeat = event.payload.seat;
+    }
+    if (event.type === "result") {
+      result = event.payload as MatchResult;
+      finished = true;
+    }
   }
-};
+  for (const event of initialEvents) learn(event);
+  const renderBoard = createBoardRenderer(board, context);
 
-function addEvent(event: ShownEvent) {
-  if (seen.has(event.seq)) return;
-  seen.add(event.seq);
-  const item = document.createElement("li");
-  item.textContent = `${event.seq}. ${event.type} ${JSON.stringify(event.payload)}`;
-  events.append(item);
-}
+  const updateCount = () => { if (count) count.textContent = String(seen.size); };
+  const connectionStatus = (text: string) => { if (connection) connection.textContent = text; };
+  function updateStatus() {
+    const complete = finished || (view !== null && view.outcome !== "ongoing");
+    if (status) status.textContent = result ? resultText(result, context.names).title
+      : view?.outcome === "draw" ? "Draw"
+      : view && view.outcome !== "ongoing" ? `${agentName(context.names, view.outcome.winner)} wins`
+      : finished ? "Finished" : view ? "In progress" : "Waiting for opponent";
+    if (dot) {
+      dot.classList.remove("waiting", "active", "finished");
+      dot.classList.add(complete ? "finished" : view ? "active" : "waiting");
+    }
+    if (page && isSeat(context.firstSeat)) {
+      page.classList.remove("first-seat-0", "first-seat-1");
+      page.classList.add(`first-seat-${context.firstSeat}`);
+    }
+  }
+  function addEvent(event: ShownEvent, parent: HTMLElement | DocumentFragment) {
+    if (seen.has(event.seq)) return false;
+    seen.add(event.seq);
+    parent.append(eventCard(document, event, context));
+    return true;
+  }
+  const fragment = document.createDocumentFragment();
+  for (const event of initialEvents) addEvent(event, fragment);
+  events.append(fragment);
+  updateCount();
+  renderBoard(view, result, finished);
+  updateStatus();
+  const followLatest = () => { events.scrollTop = events.scrollHeight; };
+  followLatest();
+  // Let deferred timeline rows settle before the first paint's final scroll position.
+  document.defaultView?.requestAnimationFrame(followLatest);
 
-function render(view: View) {
-  board.replaceChildren();
-  if (view.game === "tictactoe") renderTic(view);
-  else if (view.game === "four") renderFour(view);
-  else if (view.game === "checkers") renderCheckers(view);
-  else renderFleet(view);
-  const label = document.createElement("p");
-  label.className = "turn-label";
-  label.textContent = caption(view);
-  board.append(label);
-}
-
-function caption(view: View): string {
-  if (view.outcome === "draw") return "Draw";
-  if (view.outcome !== "ongoing") return `${name(view.outcome.winner)} wins`;
-  if (view.turn === null) return "Finished";
-  return `${name(view.turn)} to move`;
-}
-
-function name(seat: Seat): string {
-  return boot.names[String(seat)] || `Seat ${seat}`;
-}
-
-function renderTic(view: Extract<View, { game: "tictactoe" }>) {
-  const grid = document.createElement("div");
-  grid.className = "grid tic";
-  view.cells.forEach((mark, index) => {
-    const cell = document.createElement("div");
-    const id = `r${Math.floor(index / 3) + 1}c${(index % 3) + 1}`;
-    cell.className = `square${id === view.lastCell ? " last" : ""}`;
-    cell.textContent = mark ?? "";
-    if (mark === "X") cell.classList.add("side-a");
-    if (mark === "O") cell.classList.add("side-b");
-    grid.append(cell);
-  });
-  board.append(grid);
-}
-
-function renderFour(view: Extract<View, { game: "four" }>) {
-  const grid = document.createElement("div");
-  grid.className = "grid four";
-  for (let row = view.grid.length - 1; row >= 0; row -= 1) {
-    for (let column = 0; column < 7; column += 1) {
-      const mark = view.grid[row]?.[column] ?? null;
-      const cell = document.createElement("div");
-      cell.className = "square";
-      if (view.last && view.last.row === row && view.last.column === column + 1) cell.classList.add("last");
-      if (mark) {
-        const disc = document.createElement("span");
-        disc.className = mark === "A" ? "disc side-a" : "disc side-b";
-        disc.textContent = mark === "A" ? "A" : "B";
-        cell.append(disc);
+  if (finished) {
+    connectionStatus("Match complete");
+    return;
+  }
+  connectionStatus("Connecting…");
+  // Native EventSource preserves Last-Event-ID on reconnect; replayed events are also deduplicated here.
+  source = createSource(`/matches/${encodeURIComponent(boot.matchId)}/events?after=${boot.seq}`);
+  source.onopen = () => { if (!finished && !refreshing) connectionStatus("Live"); };
+  source.onerror = () => {
+    if (!finished && !refreshing) connectionStatus(source?.readyState === 2 ? "Disconnected. Reload to reconnect." : "Reconnecting…");
+  };
+  source.onmessage = (message) => {
+    let data: { event: ShownEvent; view: View | null };
+    try {
+      data = JSON.parse(message.data);
+    } catch {
+      connectionStatus("Could not read an update. Reload to reconnect.");
+      return;
+    }
+    if (finished || refreshing || !data?.event || !Number.isSafeInteger(data.event.seq) || typeof data.event.type !== "string" || !data.event.payload
+      || typeof data.event.payload !== "object" || Array.isArray(data.event.payload) || seen.has(data.event.seq)) return;
+    learn(data.event);
+    if (data.view) {
+      view = data.view;
+      context.view = view;
+      // A waiting page learns the first mover from the initial public board, before the first action arrives.
+      if (!isSeat(context.firstSeat) && data.event.type === "seated" && view.game !== "fleet" && isSeat(view.turn)) {
+        context.firstSeat = view.turn;
       }
-      grid.append(cell);
     }
-  }
-  board.append(grid);
+    const follow = events.scrollHeight - events.scrollTop - events.clientHeight < 48;
+    addEvent(data.event, events);
+    updateCount();
+    renderBoard(view, result, finished);
+    updateStatus();
+    if (follow) followLatest();
+    if (finished) {
+      source?.close();
+      connectionStatus("Match complete");
+    } else if (data.event.type === "seated" && data.event.payload.seat === 1 && refresh) {
+      // Seating also changes server-only heading/snapshot content. Fetch that authoritative page once.
+      refreshing = true;
+      source?.close();
+      connectionStatus("Updating match…");
+      refresh();
+    } else connectionStatus("Live");
+  };
+  return source;
 }
 
-function renderCheckers(view: Extract<View, { game: "checkers" }>) {
-  const grid = document.createElement("div");
-  grid.className = "grid checkers";
-  const at = new Map<string, number>();
-  for (let n = 1; n <= 32; n += 1) {
-    const index = n - 1;
-    const row = Math.floor(index / 4);
-    const pos = index % 4;
-    const col = row % 2 === 0 ? pos * 2 + 1 : pos * 2;
-    at.set(`${row},${col}`, n);
-  }
-  for (let row = 0; row < 8; row += 1) {
-    for (let col = 0; col < 8; col += 1) {
-      const cell = document.createElement("div");
-      const square = at.get(`${row},${col}`);
-      cell.className = square ? "square playable" : "square light";
-      if (square && view.lastPath?.includes(square)) cell.classList.add("last");
-      const piece = square ? view.pieces[String(square)] : undefined;
-      if (piece) {
-        const token = document.createElement("span");
-        token.className = piece.startsWith("red") ? "piece side-a" : "piece side-b";
-        token.textContent = piece.endsWith("king") ? "K" : piece.startsWith("red") ? "R" : "W";
-        cell.append(token);
-      }
-      grid.append(cell);
-    }
-  }
-  board.append(grid);
-}
-
-function renderFleet(view: Extract<View, { game: "fleet" }>) {
-  const oceans = document.createElement("div");
-  oceans.className = "oceans";
-  for (const seat of [0, 1] as const) {
-    const ocean = document.createElement("div");
-    const title = document.createElement("p");
-    title.className = "ocean-label";
-    title.textContent = name(seat);
-    ocean.append(title, fleetGrid(view, seat));
-    oceans.append(ocean);
-  }
-  board.append(oceans);
-}
-
-function fleetGrid(view: Extract<View, { game: "fleet" }>, seat: Seat): HTMLElement {
-  const columns = "ABCDEFGHIJ".split("");
-  const grid = document.createElement("div");
-  grid.className = "grid fleet";
-  const ships = new Map<string, { sunk: boolean }>();
-  for (const ship of view.ships) {
-    if (ship.seat !== seat) continue;
-    for (const cell of ship.cells) ships.set(cell, { sunk: ship.sunk });
-  }
-  const shots = new Map(
-    view.shots.filter((shot) => shot.seat !== seat).map((shot) => [shot.cell, shot]),
-  );
-  for (let row = 1; row <= 10; row += 1) {
-    for (const column of columns) {
-      const id = `${column}${row}`;
-      const cell = document.createElement("div");
-      cell.className = "square";
-      const ship = ships.get(id);
-      const shot = shots.get(id);
-      if (view.lastShot?.cell === id && view.lastShot.seat !== seat) cell.classList.add("last");
-      if (ship && !shot) cell.classList.add("ship");
-      if (shot?.hit || ship?.sunk) cell.classList.add("hit");
-      if (ship?.sunk) cell.classList.add("sunk");
-      if (shot && !shot.hit) cell.classList.add("miss");
-      cell.textContent = shot ? (shot.hit ? "hit" : "miss") : ship ? "ship" : "";
-      grid.append(cell);
-    }
-  }
-  return grid;
+if (typeof document !== "undefined" && typeof window !== "undefined") {
+  startClient(document, window.__events ?? [], (url) => new EventSource(url), () => window.location.reload());
 }
