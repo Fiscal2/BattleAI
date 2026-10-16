@@ -23,7 +23,7 @@ describe("Rankings HTTP boundary", () => {
       expect(response.headers["cache-control"]).toBe("private, no-store");
       expect(response.body).toContain("&lt;Coach &amp; A&gt;");
       expect(response.body).toContain("Coach B");
-      expect(response.body).toContain("Forfeit W/L");
+      expect(response.body).toContain("Forfeits");
       expect(response.body).toContain('aria-current="page">Rankings');
       for (const secret of ["private-a@example.test", "private-hash-a", "private-coaching"]) expect(response.body).not.toContain(secret);
       const mine = await f.app.inject({ url: "/rankings", headers: { cookie: f.cookie } });

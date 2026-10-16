@@ -19,8 +19,7 @@ export type RankingRow = {
   wins: number;
   losses: number;
   draws: number;
-  forfeitWins: number;
-  forfeitLosses: number;
+  forfeits: number;
   rank: number;
 };
 
@@ -354,16 +353,15 @@ export function openStore(path: string) {
                     SUM(CASE WHEN m.winner_seat = s.seat THEN 1 ELSE 0 END) AS wins,
                     SUM(CASE WHEN m.winner_seat <> s.seat THEN 1 ELSE 0 END) AS losses,
                     SUM(CASE WHEN m.result = 'draw' THEN 1 ELSE 0 END) AS draws,
-                    SUM(CASE WHEN m.result = 'forfeit' AND m.winner_seat = s.seat THEN 1 ELSE 0 END) AS forfeitWins,
-                    SUM(CASE WHEN m.result = 'forfeit' AND m.forfeit_seat = s.seat THEN 1 ELSE 0 END) AS forfeitLosses
+                    SUM(CASE WHEN m.result = 'forfeit' AND m.forfeit_seat = s.seat THEN 1 ELSE 0 END) AS forfeits
              ${from}
              GROUP BY c.id
            ), ranked AS (
-             SELECT coachId, displayName, played, wins, losses, draws, forfeitWins, forfeitLosses,
+             SELECT coachId, displayName, played, wins, losses, draws, forfeits,
                     RANK() OVER (ORDER BY wins DESC, 1.0 * wins / played DESC, played DESC) AS rank
              FROM totals
            )
-           SELECT coachId, displayName, played, wins, losses, draws, forfeitWins, forfeitLosses, rank
+           SELECT coachId, displayName, played, wins, losses, draws, forfeits, rank
            FROM ranked
            ORDER BY rank, displayName COLLATE NOCASE, coachId
            LIMIT @limit OFFSET @offset`,

@@ -59,8 +59,7 @@ describe("rankings", () => {
       wins: 0,
       losses: 0,
       draws: 0,
-      forfeitWins: 0,
-      forfeitLosses: 0,
+      forfeits: 0,
       rank: 1,
       ...stats,
     };
@@ -94,9 +93,9 @@ describe("rankings", () => {
 
     expect(store.rankings({ limit: 50, offset: 0 })).toEqual({
       rows: [
-        row(cy, { played: 2, wins: 1, draws: 1, forfeitWins: 1 }),
-        row(ada, { played: 3, wins: 1, losses: 2, forfeitLosses: 2, rank: 2 }),
-        row(bea, { played: 3, wins: 1, losses: 1, draws: 1, forfeitWins: 1, rank: 2 }),
+        row(cy, { played: 2, wins: 1, draws: 1 }),
+        row(ada, { played: 3, wins: 1, losses: 2, forfeits: 2, rank: 2 }),
+        row(bea, { played: 3, wins: 1, losses: 1, draws: 1, rank: 2 }),
       ],
       total: 3,
     });
@@ -115,7 +114,7 @@ describe("rankings", () => {
     const loser = winnerSeat === 0 ? guest : host;
 
     expect(store.rankings({ limit: 50, offset: 0 })).toEqual({
-      rows: [row(winner, { wins: 1, forfeitWins: 1 }), row(loser, { losses: 1, forfeitLosses: 1, rank: 2 })],
+      rows: [row(winner, { wins: 1 }), row(loser, { losses: 1, forfeits: 1, rank: 2 })],
       total: 2,
     });
   });
@@ -215,11 +214,11 @@ describe("rankings", () => {
       { coachId: cy.id, rank: 2 },
     ]);
     expect(store.rankings({ gameId: "four", limit: 1, offset: 0 })).toEqual({
-      rows: [row(bea, { played: 2, wins: 1, draws: 1, forfeitWins: 1 })],
+      rows: [row(bea, { played: 2, wins: 1, draws: 1 })],
       total: 2,
     });
     expect(store.rankings({ gameId: "four", limit: 1, offset: 1 })).toEqual({
-      rows: [row(ada, { played: 2, losses: 1, draws: 1, forfeitLosses: 1, rank: 2 })],
+      rows: [row(ada, { played: 2, losses: 1, draws: 1, forfeits: 1, rank: 2 })],
       total: 2,
     });
     expect(store.rankings({ gameId: "four", limit: 1, offset: 2 })).toEqual({ rows: [], total: 2 });
@@ -252,7 +251,7 @@ describe("rankings", () => {
       total: 52,
     });
     expect(Object.keys(first.rows[0]).sort()).toEqual([
-      "coachId", "displayName", "draws", "forfeitLosses", "forfeitWins", "losses", "played", "rank", "wins",
+      "coachId", "displayName", "draws", "forfeits", "losses", "played", "rank", "wins",
     ]);
   });
 });

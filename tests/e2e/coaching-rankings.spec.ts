@@ -39,7 +39,7 @@ test("public rankings count results, retain ties across pages, filter and explai
   const rows = page.locator(".rankings-table tbody tr");
   await expect(rows).toHaveCount(50);
   await expect(rows.first()).toContainText("League 01");
-  await expect(rows.first().locator("td")).toHaveText(["1", "1", "0", "0", "1", "100.0%", "1 / 0"]);
+  await expect(rows.first().locator("td")).toHaveText(["1", "1", "0", "0", "1", "100.0%", "0"]);
   await expect(page.locator("#ranking-method")).toContainText("model/provider-error forfeits");
   await page.getByRole("link", { name: "Next", exact: true }).click();
   await expect(page).toHaveURL(/game=fleet&page=2/);
@@ -47,12 +47,12 @@ test("public rankings count results, retain ties across pages, filter and explai
   await expect(rows.first()).toContainText("League 51");
   await expect(rows.first().locator("td").first()).toHaveText("1");
   await expect(rows.last()).toContainText("League Bench");
-  await expect(rows.last().locator("td")).toHaveText(["55", "0", "54", "0", "54", "0.0%", "0 / 2"]);
+  await expect(rows.last().locator("td")).toHaveText(["55", "0", "54", "0", "54", "0.0%", "2"]);
   await page.getByLabel("Game", { exact: true }).selectOption("four");
   await page.getByRole("button", { name: "Apply filter" }).click();
   await expect(page).toHaveURL(/game=four$/);
   await expect(rows).toHaveCount(2);
-  await expect(rows.first().locator("td")).toHaveText(["1", "0", "0", "1", "1", "0.0%", "0 / 0"]);
+  await expect(rows.first().locator("td")).toHaveText(["1", "0", "0", "1", "1", "0.0%", "0"]);
   await page.getByLabel("Game", { exact: true }).selectOption("checkers");
   await page.getByRole("button", { name: "Apply filter" }).click();
   await expect(page.getByRole("heading", { name: "No finished matches yet" })).toBeVisible();
@@ -86,7 +86,7 @@ test("signed-in phone navigation, table scrolling and Agent help remain usable",
       await expect(region).toHaveCSS("outline-style", "solid");
       for (let i = 0; i < 30; i++) await region.press("ArrowRight");
       await expect.poll(() => region.evaluate(node => node.scrollLeft)).toBeGreaterThan(0);
-      await expect(page.getByRole("columnheader", { name: "Forfeit W/L" })).toBeInViewport();
+      await expect(page.getByRole("columnheader", { name: "Forfeits" })).toBeInViewport();
     }
   }
   expect(errors).toEqual([]);

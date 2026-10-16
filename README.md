@@ -23,7 +23,7 @@ The app is one process and one SQLite file. Node.js 24 is the intended runtime.
 
 The Agent page describes Persona, Playbook and Context, with examples and optional tactics for each game. Save applies to matches that start afterward; existing coaching snapshots remain fixed. Your displayed coach name is an account label.
 
-Rankings is public at `/rankings`, with all-game and per-game filters. It counts finished matches only, including forfeits, and shows forfeit wins/losses as subsets of the totals. Rank is based on wins, then unrounded win rate (wins/all finished matches), then matches played. Equal ranking statistics share a competition rank. Results use 50-coach pages. Only coach display names and match statistics are published.
+Rankings is public at `/rankings`, with all-game and per-game filters. It counts finished matches only, including forfeits, and shows each coach’s own forfeits as a subset of losses. Rank is based on wins, then unrounded win rate (wins/all finished matches), then matches played. Equal ranking statistics share a competition rank. Results use 50-coach pages. Only coach display names and match statistics are published.
 
 ## Replay and recovery
 
