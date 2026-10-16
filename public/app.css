@@ -195,7 +195,7 @@ form { margin: 0; }
 .event-agent { color: var(--text); font-size: 12px; font-weight: 500; overflow-wrap: anywhere; }
 .event-seq { font-family: var(--font-mono); font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; flex-shrink: 0; }
 .event-title { display: block; font-size: 14px; font-weight: 500; line-height: 1.5; margin: 0; color: var(--white); overflow-wrap: anywhere; }
-.event-detail { color: var(--muted); font-size: 12px; line-height: 1.65; margin: 6px 0 0; overflow-wrap: anywhere; }
+.event-detail { display: block; color: var(--muted); font-size: 12px; line-height: 1.65; margin: 6px 0 0; overflow-wrap: anywhere; }
 .event-coordinate { display: inline-block; font-family: var(--font-mono); font-size: 11px; line-height: 1.5; color: var(--text); padding: 3px 7px; border: 1px solid var(--surface-border); background: var(--card); border-radius: 5px; margin: 8px 6px 0 0; }
 .event-graphic { width: 48px; height: 48px; color: var(--agent-color, var(--muted)); align-self: center; }
 .event-kind { display: inline-block; color: var(--muted); font-size: 10px; }
@@ -337,3 +337,50 @@ form { margin: 0; }
 .event-result .event-title { color: var(--status); }
 .event-result .event-marker { background: var(--status); }
 .event-kind { margin-left: auto; }
+
+/* Replay uses the same recessed surfaces, compact labels and pill controls. */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.replay-controls { padding: 20px 28px; border-bottom: 1px solid var(--hairline); scroll-margin-top: 20px; }
+.replay-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+#replay-position { margin: 0; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+#replay-unseen { white-space: nowrap; }
+.replay-seek-label { display: flex; align-items: center; min-height: 32px; margin-bottom: 10px; }
+#replay-seek { width: 100%; margin: 0; accent-color: var(--white); cursor: pointer; }
+.replay-actions, .replay-transport { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.replay-actions { justify-content: space-between; gap: 12px; }
+.replay-actions .pill { font-size: 12px; min-height: 36px; padding: 8px 14px; }
+.replay-actions .replay-step { width: 36px; padding: 8px; }
+.replay-step svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.replay-speed-label select { border: 1px solid var(--ghost-border); border-radius: 999px; background: transparent; padding: 8px 10px; font-size: 12px; min-height: 36px; cursor: pointer; }
+.replay-error { color: var(--rose); font-size: 12px; line-height: 1.6; margin: 12px 0 0; }
+.replay-error:empty { display: none; }
+.event-select { display: grid; grid-column: 1 / -1; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 14px; border: 0; background: none; padding: 0; color: inherit; font: inherit; text-align: left; min-width: 0; width: 100%; cursor: pointer; border-radius: 6px; }
+.event-select:hover .event-title { color: var(--sky); }
+.event-item.is-selected { background: var(--card); }
+.event-item.is-selected .event-marker { background: var(--sky); }
+.event-select[aria-current="step"] .event-title { color: var(--sky); }
+.mobile-board-link { display: none; }
+.coordinate-board { --coordinate-gap: 5px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px 6px; }
+.coordinate-board-with-rows { grid-template-columns: max-content minmax(0, 1fr); }
+.coordinate-columns, .coordinate-rows { display: grid; gap: var(--coordinate-gap); min-width: 0; }
+.coordinate-columns { grid-row: 1; }
+.coordinate-rows { grid-area: 2 / 1; }
+.coordinate-board > .grid { grid-row: 2; min-width: 0; }
+.coordinate-board-with-rows > .coordinate-columns, .coordinate-board-with-rows > .grid { grid-column: 2; }
+.coordinate-board-fleet { --coordinate-gap: 3px; }
+.coordinate-label { display: grid; place-items: center; min-width: 0; font: 10px/1 var(--font-mono); color: var(--muted); }
+.square-coordinate { position: absolute; top: 2px; left: 2px; font: 8px/1 var(--font-mono); color: var(--muted); pointer-events: none; }
+@media (max-width: 760px) {
+  .mobile-board-link { display: block; padding: 12px 24px; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--hairline); }
+  .mobile-board-link:hover { color: var(--white); }
+  .replay-actions .pill, .replay-speed-label select { min-height: 44px; }
+  .replay-actions .replay-step { width: 44px; }
+}
+@media (max-width: 480px) {
+  .replay-controls { padding: 18px 20px; }
+  .replay-actions { align-items: stretch; flex-direction: column; }
+  .replay-transport { justify-content: space-between; }
+  .replay-speed-label select { padding-inline: 12px; }
+  .coordinate-label { font-size: 9px; }
+  .mobile-board-link { padding-inline: 20px; }
+}

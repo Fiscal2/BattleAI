@@ -1,4 +1,5 @@
 import { createBoardRenderer } from "./board.js";
+import { createReplay, type ReplayDependencies } from "./replay.js";
 import { eventCard, resultText } from "./feed.js";
 import { agentName, isSeat, type Boot, type MatchResult, type ShownEvent, type View } from "./types.js";
 
@@ -8,7 +9,7 @@ declare global {
   }
 }
 
-export function startClient(document: Document, initialEvents: ShownEvent[], createSource: (url: string) => EventSource, refresh?: () => void) {
+export function startClient(document: Document, initialEvents: ShownEvent[], createSource: (url: string) => EventSource, refresh?: () => void, deps: ReplayDependencies = {}) {
   const boot = JSON.parse(document.querySelector<HTMLScriptElement>("#boot")!.textContent || "{}") as Boot;
   const board = document.querySelector<HTMLElement>("#board")!;
   const events = document.querySelector<HTMLOListElement>("#events")!;
@@ -18,10 +19,13 @@ export function startClient(document: Document, initialEvents: ShownEvent[], cre
   const dot = document.querySelector<HTMLElement>(".status-pill .dot");
   const page = document.querySelector<HTMLElement>(".match-page");
   const seen = new Set<number>();
+  let latestSeq = boot.seq;
+  let runner = boot.runner;
   let view = boot.view;
   let result = boot.result ?? null;
   let finished = boot.status === "finished" || result !== null;
   let refreshing = false;
+  let deferredRefresh = false;
   let source: EventSource | null = null;
   const context = { game: boot.game, names: { ...boot.names }, firstSeat: boot.firstSeat, view };
 
@@ -38,41 +42,66 @@ export function startClient(document: Document, initialEvents: ShownEvent[], cre
     }
   }
   for (const event of initialEvents) learn(event);
-  const renderBoard = createBoardRenderer(board, context);
+  const displayContext = { ...context, names: { ...context.names } };
+  const renderBoard = createBoardRenderer(board, displayContext);
+  const livePosition = () => ({
+    seq: latestSeq, view, result, firstSeat: context.firstSeat ?? null, names: { ...context.names },
+  });
+  const replay = createReplay(document, boot.matchId, livePosition(), (position, live) => {
+    displayContext.names = { ...position.names };
+    displayContext.firstSeat = position.firstSeat;
+    displayContext.view = position.view;
+    renderBoard(position.view, position.result, position.result !== null || (live && finished));
+    if (page) {
+      page.classList.remove("first-seat-0", "first-seat-1");
+      if (isSeat(position.firstSeat)) page.classList.add(`first-seat-${position.firstSeat}`);
+    }
+    if (live && deferredRefresh) refreshPage();
+  }, deps);
 
   const updateCount = () => { if (count) count.textContent = String(seen.size); };
-  const connectionStatus = (text: string) => { if (connection) connection.textContent = text; };
+  const runnerPaused = () => !finished && (runner === "stopped" || runner === "unconfigured");
+  const connectionStatus = (text: string) => {
+    if (connection) connection.textContent = runnerPaused() && !refreshing ? "Play paused. Reload to retry." : text;
+  };
+  function refreshPage() {
+    if (!refresh || refreshing) return;
+    deferredRefresh = false;
+    refreshing = true;
+    source?.close();
+    connectionStatus("Updating match…");
+    refresh();
+  }
   function updateStatus() {
     const complete = finished || (view !== null && view.outcome !== "ongoing");
     if (status) status.textContent = result ? resultText(result, context.names).title
       : view?.outcome === "draw" ? "Draw"
       : view && view.outcome !== "ongoing" ? `${agentName(context.names, view.outcome.winner)} wins`
-      : finished ? "Finished" : view ? "In progress" : "Waiting for opponent";
+      : finished ? "Finished" : runnerPaused() ? "Play paused. Reload to retry." : view ? "In progress" : "Waiting for opponent";
     if (dot) {
       dot.classList.remove("waiting", "active", "finished");
-      dot.classList.add(complete ? "finished" : view ? "active" : "waiting");
-    }
-    if (page && isSeat(context.firstSeat)) {
-      page.classList.remove("first-seat-0", "first-seat-1");
-      page.classList.add(`first-seat-${context.firstSeat}`);
+      dot.classList.add(complete ? "finished" : view && !runnerPaused() ? "active" : "waiting");
     }
   }
   function addEvent(event: ShownEvent, parent: HTMLElement | DocumentFragment) {
     if (seen.has(event.seq)) return false;
     seen.add(event.seq);
-    parent.append(eventCard(document, event, context));
+    latestSeq = Math.max(latestSeq, event.seq);
+    const card = eventCard(document, event, context, (seq) => { void replay.select(seq); });
+    parent.append(card);
+    replay.register(event.seq, card);
     return true;
   }
   const fragment = document.createDocumentFragment();
   for (const event of initialEvents) addEvent(event, fragment);
   events.append(fragment);
   updateCount();
-  renderBoard(view, result, finished);
+  replay.updateLive(livePosition(), finished);
   updateStatus();
   const followLatest = () => { events.scrollTop = events.scrollHeight; };
   followLatest();
   // Let deferred timeline rows settle before the first paint's final scroll position.
-  document.defaultView?.requestAnimationFrame(followLatest);
+  document.defaultView?.requestAnimationFrame(() => { if (replay.isLive()) followLatest(); });
 
   if (finished) {
     connectionStatus("Match complete");
@@ -86,14 +115,20 @@ export function startClient(document: Document, initialEvents: ShownEvent[], cre
     if (!finished && !refreshing) connectionStatus(source?.readyState === 2 ? "Disconnected. Reload to reconnect." : "Reconnecting…");
   };
   source.onmessage = (message) => {
-    let data: { event: ShownEvent; view: View | null };
+    let data: { event?: ShownEvent; view?: View | null; firstSeat?: unknown; names?: Record<string, string>; runner?: unknown };
     try {
       data = JSON.parse(message.data);
     } catch {
       connectionStatus("Could not read an update. Reload to reconnect.");
       return;
     }
-    if (finished || refreshing || !data?.event || !Number.isSafeInteger(data.event.seq) || typeof data.event.type !== "string" || !data.event.payload
+    if (finished || refreshing) return;
+    if (data?.runner === "stopped" || data?.runner === "running" || data?.runner === "unconfigured") {
+      runner = data.runner;
+      updateStatus();
+      connectionStatus("Live");
+    }
+    if (!data?.event || !Number.isSafeInteger(data.event.seq) || data.event.seq < 1 || typeof data.event.type !== "string" || !data.event.payload
       || typeof data.event.payload !== "object" || Array.isArray(data.event.payload) || seen.has(data.event.seq)) return;
     learn(data.event);
     if (data.view) {
@@ -104,21 +139,24 @@ export function startClient(document: Document, initialEvents: ShownEvent[], cre
         context.firstSeat = view.turn;
       }
     }
+    if (data.firstSeat === null || isSeat(data.firstSeat)) context.firstSeat = data.firstSeat;
+    if (data.names && typeof data.names === "object" && !Array.isArray(data.names)
+      && Object.values(data.names).every((name) => typeof name === "string")) {
+      context.names = { ...context.names, ...data.names };
+    }
     const follow = events.scrollHeight - events.scrollTop - events.clientHeight < 48;
     addEvent(data.event, events);
     updateCount();
-    renderBoard(view, result, finished);
+    replay.updateLive(livePosition(), finished);
     updateStatus();
-    if (follow) followLatest();
+    if (follow && replay.isLive()) followLatest();
     if (finished) {
       source?.close();
       connectionStatus("Match complete");
     } else if (data.event.type === "seated" && data.event.payload.seat === 1 && refresh) {
-      // Seating also changes server-only heading/snapshot content. Fetch that authoritative page once.
-      refreshing = true;
-      source?.close();
-      connectionStatus("Updating match…");
-      refresh();
+      // A full refresh updates server-rendered headings, but must not displace an inspected position.
+      if (replay.isLive()) refreshPage();
+      else { deferredRefresh = true; connectionStatus("Live"); }
     } else connectionStatus("Live");
   };
   return source;

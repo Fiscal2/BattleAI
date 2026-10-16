@@ -9,7 +9,9 @@
     "test": "vitest run",
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.web.json && esbuild src/web/client.ts --bundle --minify --outfile=public/client.js --format=esm",
     "start": "node dist/server.js",
-    "dev": "esbuild src/web/client.ts --bundle --outfile=public/client.js --format=esm && tsx src/server.ts"
+    "dev": "esbuild src/web/client.ts --bundle --outfile=public/client.js --format=esm && tsx src/server.ts",
+    "test:e2e": "npm run build && playwright test",
+    "test:e2e:serve": "tsx tests/e2e/server.ts"
   },
   "dependencies": {
     "argon2": "^0.45.1",
@@ -19,6 +21,7 @@
   "devDependencies": {
     "@fontsource/geist": "^5.3.0",
     "@fontsource/geist-mono": "^5.3.0",
+    "@playwright/test": "1.63.0",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.6.3",
     "esbuild": "^0.28.2",

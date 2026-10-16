@@ -60,6 +60,37 @@ export function createBoardRenderer(board: HTMLElement, context: FeedContext) {
     node.style.maxHeight = "75%";
     return node;
   };
+  // Axes stay outside the playing grid so square order and accessible cell labels remain intact.
+  const withCoordinates = (node: HTMLElement, columns: string[], rows: string[] = []) => {
+    const wrapper = document.createElement("div");
+    wrapper.className = `coordinate-board coordinate-board-${node.className.split(" ")[1]}`;
+    wrapper.style.width = "100%";
+    wrapper.style.maxWidth = node.style.maxWidth;
+    wrapper.style.minWidth = "0";
+    const axis = (className: string, labels: string[]) => {
+      const element = document.createElement("div");
+      element.className = className;
+      element.setAttribute("aria-hidden", "true");
+      for (const text of labels) {
+        const label = document.createElement("span");
+        label.className = "coordinate-label";
+        label.textContent = text;
+        element.append(label);
+      }
+      return element;
+    };
+    const top = axis("coordinate-columns", columns);
+    top.style.gridTemplateColumns = node.style.gridTemplateColumns;
+    wrapper.append(top);
+    if (rows.length) {
+      wrapper.classList.add("coordinate-board-with-rows");
+      const left = axis("coordinate-rows", rows);
+      left.style.gridTemplateRows = `repeat(${rows.length}, minmax(0, 1fr))`;
+      wrapper.append(left);
+    }
+    wrapper.append(node);
+    return wrapper;
+  };
 
   function renderSurface(view: View) {
     if (view.game === "tictactoe") {
@@ -72,7 +103,7 @@ export function createBoardRenderer(board: HTMLElement, context: FeedContext) {
         if (id === view.lastCell) cell.classList.add("last");
         node.append(cell);
       });
-      surface.replaceChildren(node);
+      surface.replaceChildren(withCoordinates(node, ["c1", "c2", "c3"], ["r1", "r2", "r3"]));
     } else if (view.game === "four") {
       const node = grid("four", 7, 380, "Four-in-a-row board; row 1 is the bottom row");
       for (let row = view.grid.length - 1; row >= 0; row -= 1) {
@@ -84,7 +115,7 @@ export function createBoardRenderer(board: HTMLElement, context: FeedContext) {
           node.append(cell);
         }
       }
-      surface.replaceChildren(node);
+      surface.replaceChildren(withCoordinates(node, ["1", "2", "3", "4", "5", "6", "7"]));
     } else if (view.game === "checkers") {
       const node = grid("checkers", 8, 380, "Checkers board");
       for (let row = 0; row < 8; row += 1) {
@@ -95,6 +126,13 @@ export function createBoardRenderer(board: HTMLElement, context: FeedContext) {
           const coordinate = `Row ${row + 1}, column ${column + 1}${number === null ? "" : `, square ${number}`}`;
           const state = piece ? pieceLabel(piece.replace("-", " "), piece.startsWith("red")) : playable ? "empty" : "unplayable";
           const cell = square(`${coordinate}: ${state}`, `square ${playable ? "playable" : "light"}`);
+          if (number !== null) {
+            const label = document.createElement("span");
+            label.className = "square-coordinate";
+            label.setAttribute("aria-hidden", "true");
+            label.textContent = String(number);
+            cell.append(label);
+          }
           if (piece) cell.append(disc(`piece ${piece.startsWith("red") ? "side-a" : "side-b"}${seatClass(piece.startsWith("red"))}`,
             piece.endsWith("king") ? "K" : piece.startsWith("red") ? "R" : "W"));
           if (number !== null && view.lastPath?.includes(number)) cell.classList.add("last");
@@ -130,7 +168,7 @@ export function createBoardRenderer(board: HTMLElement, context: FeedContext) {
             node.append(cell);
           }
         }
-        ocean.append(title, node);
+        ocean.append(title, withCoordinates(node, Array.from("ABCDEFGHIJ"), ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]));
         oceans.append(ocean);
       }
       surface.replaceChildren(oceans);

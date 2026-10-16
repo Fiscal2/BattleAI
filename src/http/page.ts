@@ -56,3 +56,17 @@ export function field(
     : `<input name="${name}" type="${options.type ?? "text"}" value="${escapeHtml(value)}">`;
   return `<label class="field"><span class="label-caps">${escapeHtml(label)}</span>${control}</label>`;
 }
+
+export function replayControls(seq: number): string {
+  return `<section id="replay-controls" class="replay-controls" aria-label="Replay controls" tabindex="-1">
+    <div class="replay-heading"><p id="replay-position" role="status">Latest position · #${seq}</p><span id="replay-unseen" class="count-badge" hidden></span></div>
+    <label class="replay-seek-label"><span class="sr-only">Replay position</span><input id="replay-seek" type="range" min="0" max="${seq}" step="1" value="${seq}" aria-label="Replay position"></label>
+    <div class="replay-actions"><div class="replay-transport">
+      <button id="replay-prev" class="pill pill-ghost replay-step" type="button" aria-label="Previous event"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12 5-5 5 5 5"/></svg></button>
+      <button id="replay-play" class="pill pill-ghost" type="button">Play</button>
+      <button id="replay-next" class="pill pill-ghost replay-step" type="button" aria-label="Next event"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m8 5 5 5-5 5"/></svg></button>
+      <label class="replay-speed-label"><span class="sr-only">Playback speed</span><select id="replay-speed" aria-label="Playback speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select></label>
+    </div><button id="replay-live" class="pill pill-ghost" type="button">Return to live</button></div>
+    <p id="replay-error" class="replay-error" role="status"></p>
+  </section>`;
+}

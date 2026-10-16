@@ -3,3 +3,5 @@ dist
 data
 public/client.js
 .env
+test-results
+playwright-report

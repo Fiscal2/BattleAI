@@ -106,7 +106,7 @@ export function formatEvent(event: ShownEvent, context: FeedContext): FormattedE
   return formatted;
 }
 
-export function eventCard(document: Document, event: ShownEvent, context: FeedContext): HTMLLIElement {
+export function eventCard(document: Document, event: ShownEvent, context: FeedContext, onSelect?: (seq: number) => void): HTMLLIElement {
   const formatted = formatEvent(event, context);
   const element = (tag: string, className: string, text = "") => {
     const node = document.createElement(tag);
@@ -119,14 +119,14 @@ export function eventCard(document: Document, event: ShownEvent, context: FeedCo
   item.dataset.seq = String(event.seq);
   const marker = element("span", "event-marker");
   marker.setAttribute("aria-hidden", "true");
-  const content = element("div", "event-content");
-  const meta = element("div", "event-meta");
+  const content = element(onSelect ? "span" : "div", "event-content");
+  const meta = element(onSelect ? "span" : "div", "event-meta");
   meta.append(element("span", "event-agent", formatted.agent), element("span", "event-kind", formatted.kind),
     element("span", "event-seq", `#${event.seq}`));
-  const title = element("p", "event-title", formatted.title);
+  const title = element(onSelect ? "span" : "p", "event-title", formatted.title);
   content.append(meta, title);
   if (formatted.detail || formatted.coordinates.length) {
-    const detail = element("div", "event-detail");
+    const detail = element(onSelect ? "span" : "div", "event-detail");
     if (formatted.detail) detail.append(element("span", "", formatted.detail));
     formatted.coordinates.forEach((coordinate, index) => {
       if (formatted.graphic?.kind === "checkers" && index > 0) detail.append(element("span", "", "→"));
@@ -134,8 +134,17 @@ export function eventCard(document: Document, event: ShownEvent, context: FeedCo
     });
     content.append(detail);
   }
-  item.append(marker, content);
-  if (formatted.graphic) item.append(actionGraphic(document, formatted.graphic, formatted.coordinates.join(" → ")));
+  const target = onSelect ? document.createElement("button") : item;
+  if (onSelect) {
+    const button = target as HTMLButtonElement;
+    button.type = "button";
+    button.className = "event-select";
+    button.setAttribute("aria-label", `Show position after #${event.seq}: ${[formatted.agent, formatted.title, ...formatted.coordinates].join(", ")}`);
+    button.addEventListener("click", () => onSelect(event.seq));
+    item.append(button);
+  }
+  target.append(marker, content);
+  if (formatted.graphic) target.append(actionGraphic(document, formatted.graphic, formatted.coordinates.join(" → ")));
   return item;
 }
 

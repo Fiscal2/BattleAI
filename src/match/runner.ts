@@ -88,7 +88,7 @@ export async function playTurn(input: {
   let provider = 0;
   while (true) {
     const result = await input.complete(messages);
-    if ("error" in result) {
+    if ("error" in result && result.category !== "invalid_reply") {
       provider += 1;
       if (provider >= 2) {
         forfeit(input.store, input.matchId, seat, "model_error");
@@ -96,7 +96,8 @@ export async function playTurn(input: {
       }
       continue;
     }
-    const action = parseAction(result.content);
+    const content = "content" in result ? result.content : "[Unreadable model reply]";
+    const action = "content" in result ? parseAction(content) : null;
     const verdict = action === null ? "Reply is not a JSON object." : input.game.validate(state, seat, action);
     const listed =
       action !== null &&
@@ -111,7 +112,7 @@ export async function playTurn(input: {
       }
       messages = [
         ...messages,
-        { role: "assistant", content: result.content },
+        { role: "assistant", content },
         { role: "user", content: reason },
       ];
       continue;
@@ -153,6 +154,7 @@ export function startLoops(input: {
   configured: boolean;
   running: Map<string, Promise<void>>;
   afterEvent?: (event: EventRow) => void;
+  onError?: (error: unknown) => void;
 }) {
   if (!input.configured) return;
   for (const id of input.store.activeMatchIds()) ensureLoop({ ...input, matchId: id });
@@ -166,10 +168,11 @@ export function ensureLoop(input: {
   running: Map<string, Promise<void>>;
   matchId: string;
   afterEvent?: (event: EventRow) => void;
+  onError?: (error: unknown) => void;
 }) {
   if (!input.configured) return;
   if (input.running.has(input.matchId)) return;
-  const task = (async () => {
+  const task = Promise.resolve().then(async () => {
     try {
       while (true) {
         const match = input.store.getMatch(input.matchId);
@@ -188,10 +191,14 @@ export function ensureLoop(input: {
         }
         if (status === "finished") return;
       }
-    } catch {
-      return;
+    } catch (error) {
+      try {
+        await input.onError?.(error);
+      } catch {
+        // Diagnostics must not leave an unhandled rejection or prevent recovery.
+      }
     }
-  })().finally(() => {
+  }).finally(() => {
     input.running.delete(input.matchId);
   });
   input.running.set(input.matchId, task);
