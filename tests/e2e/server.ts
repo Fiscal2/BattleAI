@@ -42,6 +42,18 @@ create("waiting", "fleet", [], false);
 create("forfeit", "tictactoe");
 store.finishMatch({ matchId: ids.forfeit, result: "forfeit", winnerSeat: 1, forfeitSeat: 0, forfeitCause: "model_error" });
 
+// Ranking fixtures distinguish draw/forfeit counts and ties across the 50-row boundary.
+const bench = store.createCoach({ email: "bench@example.test", displayName: "League Bench", passwordHash: "fixture" });
+for (let i = 1; i <= 54; i++) {
+  const coach = store.createCoach({ email: `league-${i}@example.test`, displayName: `League ${String(i).padStart(2, "0")}`, passwordHash: "fixture" });
+  const match = store.createMatch(coach.id, "fleet"); store.joinMatch(match.id, bench.id);
+  store.finishMatch(i <= 2
+    ? { matchId: match.id, result: "forfeit", winnerSeat: 0, forfeitSeat: 1, forfeitCause: i === 1 ? "model_error" : "invalid_action" }
+    : { matchId: match.id, result: "decided", winnerSeat: 0 });
+}
+const draw = store.createMatch(coaches[0].id, "four"); store.joinMatch(draw.id, coaches[1].id);
+store.finishMatch({ matchId: draw.id, result: "draw", winnerSeat: null });
+
 const recoveryCoaches = ["Recovery A", "Recovery B"].map((displayName, index) => store.createCoach({ email: `recovery-${index}@example.test`, displayName, passwordHash: "fixture" }));
 for (const coach of recoveryCoaches) store.saveAgent(coach.id, { persona: "", playbook: "", context: "recovery-fixture" });
 const recovery = store.createMatch(recoveryCoaches[0].id, "tictactoe");
