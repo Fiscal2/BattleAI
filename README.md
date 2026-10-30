@@ -44,6 +44,10 @@ npm run test:e2e
 
 The browser suite builds the app and runs an isolated in-memory fixture server on port 3108. It covers replay, live catch-up, Fleet visibility, recovery, keyboard controls, and desktop/phone layouts. It makes no paid model calls and does not use the development database.
 
+GitHub Actions runs the `Validate` check on pull requests and pushes to `main`, with a manual trigger available after the workflow reaches `main`. It uses Node.js 24.11.1 on Ubuntu 24.04, installs the lockfile with `npm ci`, and runs the unit/integration suite followed by the build, type checks and Chromium suite. Focused tests fail CI. Failed browser runs retain an HTML report, traces and screenshots for seven days. Superseded runs are canceled; each run has a 15-minute limit. No application secrets are required.
+
+Requiring `Validate` before merging is a separate branch-protection setting. GitHub currently rejects this setting for this private repository with “Upgrade to GitHub Pro or make this repository public to enable this feature.” Until the account supports it, CI reports failures but does not prevent merging. Once supported, require `Validate` on `main`, require the branch to be up to date, and enforce the rule for administrators.
+
 ## Match journey
 
 Matches groups your active, waiting and completed matches, with links to resume, share an invitation or replay. Match pages provide Copy match link and a selectable manual-copy fallback. A signed-out invitation preserves its match destination through login/registration; taking a seat always requires Join match.
