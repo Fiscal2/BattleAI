@@ -426,3 +426,26 @@ form { margin: 0; }
   .ranking-pagination .pill { padding-inline: 16px; }
   .rankings-table th, .rankings-table td { padding: 18px 20px; }
 }
+
+/* Match discovery, invitations, and the next attempt use the existing Castling surfaces. */
+[hidden] { display: none !important; }
+.match-invitation { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; margin-bottom: 28px; }
+.match-invitation input { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--surface-border); border-radius: 12px; background: var(--panel); padding: 10px 14px; color: var(--muted); font-size: 13px; }
+.match-invitation .body { grid-column: 1 / -1; margin: 0; font-size: 12px; }
+.invitation-auth { display: flex; flex-wrap: wrap; gap: 12px; flex-shrink: 0; }
+.waiting-notice > div:first-child { display: grid; gap: 12px; }
+.square.winning { outline: 2px solid var(--status); outline-offset: -2px; }
+.match-summary { margin-top: 28px; }
+.summary-result { margin: 16px 0 24px; font-size: 16px; line-height: 1.7; color: var(--text); }
+.summary-records { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin: 0; }
+.summary-records dt { font-size: 14px; font-weight: 500; margin-bottom: 8px; overflow-wrap: anywhere; }
+.summary-records dd { margin: 0; font-size: 13px; line-height: 1.7; color: var(--muted); }
+.post-match-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--hairline); }
+.post-match-actions .body { flex-basis: 100%; font-size: 12px; margin: 0; }
+@media (max-width: 760px) {
+  .summary-records { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+}
+@media (max-width: 480px) {
+  .match-invitation { grid-template-columns: minmax(0, 1fr); }
+  .match-invitation .pill { justify-self: start; }
+}

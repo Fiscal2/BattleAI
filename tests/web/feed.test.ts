@@ -22,6 +22,45 @@ describe("readable action formatting", () => {
     expect(formatEvent(action({ path: [9, 18, 27] }), { ...context, game: "checkers" })).toMatchObject({ title: "Moved a piece", coordinates: ["9", "18", "27"], graphic: { kind: "checkers", path: [9, 18, 27] } });
   });
 
+  it("uses authoritative Checkers captures and promotions while keeping quiet moves quiet", () => {
+    const checkersContext = { ...context, game: "checkers" };
+    const move = action({ path: [9, 18, 25] });
+    expect(formatEvent({ ...move, consequence: { captured: 2, promoted: true } }, checkersContext))
+      .toMatchObject({ title: "Captured 2 pieces", detail: "Promoted to king", coordinates: ["9", "18", "25"] });
+    expect(formatEvent({ ...move, consequence: { captured: 1, promoted: false } }, checkersContext).title).toBe("Captured 1 piece");
+    expect(formatEvent({ ...move, consequence: { captured: 0, promoted: false } }, checkersContext))
+      .toMatchObject({ title: "Moved a piece", detail: "Path" });
+    expect(formatEvent({ ...action({ path: [25, 29] }), consequence: { captured: 0, promoted: true } }, checkersContext))
+      .toMatchObject({ title: "Moved a piece", detail: "Promoted to king" });
+  });
+
+  it("uses Fleet consequences independently of missing, conflicting or final board context", () => {
+    const shot = action({ cell: "A1" });
+    const finalView = { ...fleetView, ships: [{ seat: 0 as const, length: 5, cells: ["A1", "A2", "A3", "A4", "A5"], sunk: true }],
+      shots: [{ seat: 1 as const, cell: "A1", hit: true }] };
+    for (const view of [null, finalView, { ...finalView, shots: [{ seat: 1 as const, cell: "A1", hit: false }] }]) {
+      const fleetContext = { ...context, game: "fleet", view };
+      expect(formatEvent({ ...shot, consequence: { hit: true } }, fleetContext).title).toBe("Shot hit");
+      expect(formatEvent({ ...shot, consequence: { hit: false } }, fleetContext).title).toBe("Shot missed");
+      expect(formatEvent({ ...shot, consequence: { hit: true, sunkLength: 5 } }, fleetContext))
+        .toMatchObject({ title: "Sank a 5-cell ship", coordinates: ["A1"], graphic: { kind: "fleet", cells: ["A1"], target: true } });
+      expect(formatEvent({ ...shot, consequence: {} }, fleetContext).title).toBe("Fired a shot");
+    }
+  });
+
+  it("only consumes consequence fields for the matching game and action", () => {
+    const consequence = { captured: 2, promoted: true, hit: true, sunkLength: 5 };
+    expect(formatEvent({ ...action({ cell: "r1c1" }), consequence }, context).title).toBe("Placed X");
+    expect(formatEvent({ ...action({ column: 2 }), consequence }, { ...context, game: "four" }).title).toBe("Dropped a disc");
+    expect(formatEvent({ ...action({ path: [9, 14] }), consequence: { hit: true, sunkLength: 5 } }, { ...context, game: "checkers" }))
+      .toMatchObject({ title: "Moved a piece", detail: "Path" });
+    expect(formatEvent({ ...action({ cell: "A1" }), consequence: { captured: 2, promoted: true } }, { ...context, game: "fleet", view: fleetView }).title)
+      .toBe("Fired a shot");
+    expect(formatEvent({ ...action({ placed: true }), consequence }, { ...context, game: "fleet" }))
+      .toMatchObject({ title: "Placed the fleet", detail: "Placement hidden.", coordinates: [], graphic: null });
+    expect(formatEvent({ seq: 1, type: "seated", payload: { seat: 0 }, consequence }, context).title).toBe("Joined the match");
+  });
+
   it("requires matching seat AND cell shot evidence; a final reload view supplies that evidence", () => {
     const fleetContext = { ...context, game: "fleet", view: { ...fleetView, ships: [{ seat: 0 as const, length: 2, cells: ["A1", "A2"], sunk: false }] } };
     expect(formatEvent(action({ cell: "A1" }), fleetContext).title).toBe("Fired a shot");
@@ -66,6 +105,17 @@ describe("result and lifecycle formatting", () => {
 });
 
 describe("timeline DOM", () => {
+  it("renders consequence text and includes it in the accessible replay action", () => {
+    const document = new DocumentFixture();
+    const event = { ...action({ path: [15, 22, 31] }), consequence: { captured: 2, promoted: true } };
+    const card = eventCard(document.asDocument(), event, { ...context, game: "checkers" }, vi.fn()) as unknown as NodeFixture;
+    expect(card.find("event-title")[0].textContent).toBe("Captured 2 pieces");
+    expect(card.find("event-detail")[0].textContent).toContain("Promoted to king");
+    expect(card.find("event-select")[0].attributes["aria-label"]).toBe("Show position after #3: Bea, Captured 2 pieces, Promoted to king, 15, 22, 31");
+    expect(card.textContent).not.toContain("captured");
+    expect(card.textContent).not.toContain("promoted");
+  });
+
   it("makes the complete history card a named native button when selectable", () => {
     const document = new DocumentFixture();
     const select = vi.fn();

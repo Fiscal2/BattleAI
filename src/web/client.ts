@@ -1,6 +1,8 @@
 import { createBoardRenderer } from "./board.js";
 import { createReplay, type ReplayDependencies } from "./replay.js";
 import { eventCard, resultText } from "./feed.js";
+import { startInvitation } from "./invitation.js";
+import { renderSummary } from "./summary.js";
 import { agentName, isSeat, type Boot, type MatchResult, type ShownEvent, type View } from "./types.js";
 
 declare global {
@@ -19,6 +21,7 @@ export function startClient(document: Document, initialEvents: ShownEvent[], cre
   const dot = document.querySelector<HTMLElement>(".status-pill .dot");
   const page = document.querySelector<HTMLElement>(".match-page");
   const seen = new Set<number>();
+  const history: ShownEvent[] = [];
   let latestSeq = boot.seq;
   let runner = boot.runner;
   let view = boot.view;
@@ -82,10 +85,12 @@ export function startClient(document: Document, initialEvents: ShownEvent[], cre
       dot.classList.remove("waiting", "active", "finished");
       dot.classList.add(complete ? "finished" : view && !runnerPaused() ? "active" : "waiting");
     }
+    renderSummary(document, boot.game, history, result, context.names);
   }
   function addEvent(event: ShownEvent, parent: HTMLElement | DocumentFragment) {
     if (seen.has(event.seq)) return false;
     seen.add(event.seq);
+    history.push(event);
     latestSeq = Math.max(latestSeq, event.seq);
     const card = eventCard(document, event, context, (seq) => { void replay.select(seq); });
     parent.append(card);
@@ -163,5 +168,6 @@ export function startClient(document: Document, initialEvents: ShownEvent[], cre
 }
 
 if (typeof document !== "undefined" && typeof window !== "undefined") {
+  startInvitation(document, `${window.location.origin}${window.location.pathname}`, navigator.clipboard);
   startClient(document, window.__events ?? [], (url) => new EventSource(url), () => window.location.reload());
 }

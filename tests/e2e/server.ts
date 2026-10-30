@@ -2,12 +2,14 @@ import { createApp, createHub } from "../../src/http/app.js";
 import { openStore } from "../../src/store/db.js";
 import { fold, gameById } from "../../src/rules/index.js";
 import type { GameId, Seat } from "../../src/rules/types.js";
+import argon2 from "argon2";
 
 // Disposable browser fixtures only: no saved database, provider or account is used.
 const store = openStore(":memory:");
 const hub = createHub();
+const fixtureHash = await argon2.hash("browser-fixture-password");
 const coaches = ["Ada", "Turing"].map((displayName, index) => store.createCoach({
-  email: `coach-${index}@example.test`, displayName, passwordHash: "fixture",
+  email: `coach-${index}@example.test`, displayName, passwordHash: fixtureHash,
 }));
 for (const coach of coaches) store.saveAgent(coach.id, { persona: "Patient", playbook: "Check threats", context: "browser-fixture" });
 const placement = { ships: [
@@ -73,8 +75,8 @@ const app = createApp({ store, hub, env: { MODEL_BASE_URL: "http://not-contacted
   return new Promise<never>(() => {});
 } });
 app.get("/__test/fixtures", async () => ({ ids, sessions: coaches.map(coach => store.createSession(coach.id)), firstSeats: Object.fromEntries(Object.entries(ids).map(([key,id]) => [key, store.getMatch(id)!.first_seat])), recoveryCalls }));
-app.post("/__test/live/step", async () => {
-  const match = store.getMatch(ids.live)!;
+function step(id: string) {
+  const match = store.getMatch(id)!;
   const game = gameById(match.game_id)!;
   const state = fold(game, match.first_seat as Seat, store.parsedEvents(match.id));
   if (game.outcome(state) !== "ongoing") return { finished: true };
@@ -84,6 +86,35 @@ app.post("/__test/live/step", async () => {
   const outcome = game.outcome(game.apply(state, action));
   if (outcome !== "ongoing") hub.publish(match.id, store.finishMatch({ matchId: match.id, result: outcome === "draw" ? "draw" : "decided", winnerSeat: outcome === "draw" ? null : outcome.winner }));
   return { seq: event.seq };
+}
+app.post("/__test/live/step", async () => step(ids.live));
+app.post("/__test/journey/step", async () => step(ids.journeyLive));
+app.post("/__test/journey/seed", async () => {
+  if (!ids.journeyCapture) {
+    const paths = [[11,16],[22,17],[7,11],[26,22],[2,7],[23,19],[16,23],[27,18],[11,15],[18,11,2],[12,16],[31,26],[10,15],[17,13],[8,11],[22,18],[15,22,31],[2,7]];
+    create("journeyCapture", "checkers", paths.map(path => ({ path })));
+    store.finishMatch({ matchId: ids.journeyCapture, result: "forfeit", winnerSeat: 1, forfeitSeat: 0, forfeitCause: "invalid_action" });
+    create("journeyFour", "four", [4,3,4,3,4,3,4].map(column => ({ column })));
+    const targets = ["J10", ...[2,3,0,1,4].flatMap(index => placement.ships[index].cells)];
+    const misses = [...Array(10)].map((_, i) => `B${i+1}`).concat([...Array(10)].map((_, i) => `D${i+1}`));
+    const actions: unknown[] = [placement, placement];
+    targets.forEach((cell, i) => { actions.push({ cell }); if (i < targets.length - 1) actions.push({ cell: misses[i] }); });
+    create("journeyFleet", "fleet", actions);
+    create("journeyLive", "tictactoe");
+    create("journeyInvitation", "tictactoe", [], false);
+  }
+  return { ids, sessions: coaches.map(coach => store.createSession(coach.id)) };
+});
+app.post("/__test/journey/reset", async () => {
+  for (const [key, id] of Object.entries(ids)) {
+    if (!key.startsWith("journey")) continue;
+    store.db.prepare("DELETE FROM events WHERE match_id = ?").run(id);
+    store.db.prepare("DELETE FROM seats WHERE match_id = ?").run(id);
+    store.db.prepare("DELETE FROM matches WHERE id = ?").run(id);
+    delete ids[key];
+  }
+  for (const coach of coaches) store.saveAgent(coach.id, { persona: "Patient", playbook: "Check threats", context: "browser-fixture" });
+  return { ok: true };
 });
 app.post("/__test/recovery/fail", async () => { fail(); return { ok: true }; });
 app.post("/__test/recovery/release", async () => { release(); return { ok: true }; });

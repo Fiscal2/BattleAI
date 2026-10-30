@@ -74,9 +74,11 @@ export function formatEvent(event: ShownEvent, context: FeedContext): FormattedE
   } else if (context.game === "checkers" && Array.isArray(action.path) && action.path.length >= 2
     && action.path.every((square) => Number.isInteger(square) && square >= 1 && square <= 32)) {
     const path = action.path as number[];
-    formatted.title = "Moved a piece";
+    const captured = event.consequence?.captured;
+    formatted.title = captured !== undefined && captured > 0
+      ? `Captured ${captured} ${captured === 1 ? "piece" : "pieces"}` : "Moved a piece";
     formatted.coordinates = path.map(String);
-    formatted.detail = "Path";
+    formatted.detail = event.consequence?.promoted ? "Promoted to king" : "Path";
     formatted.graphic = { kind: "checkers", path };
   } else if (context.game === "fleet") {
     if (action.placed === true || Array.isArray(action.ships)) {
@@ -96,9 +98,15 @@ export function formatEvent(event: ShownEvent, context: FeedContext): FormattedE
         formatted.graphic = { kind: "fleet", cells, target: false };
       } else formatted.detail = "Placement hidden.";
     } else if (typeof action.cell === "string" && /^[A-J]([1-9]|10)$/.test(action.cell)) {
-      const shot = context.view?.game === "fleet" ? context.view.shots.find((candidate) =>
-        candidate.seat === seat && candidate.cell === action.cell) : undefined;
-      formatted.title = shot ? (shot.hit ? "Shot hit" : "Shot missed") : "Fired a shot";
+      if (event.consequence !== undefined) {
+        const { hit, sunkLength } = event.consequence;
+        formatted.title = sunkLength !== undefined && sunkLength > 0 ? `Sank a ${sunkLength}-cell ship`
+          : hit === true ? "Shot hit" : hit === false ? "Shot missed" : "Fired a shot";
+      } else {
+        const shot = context.view?.game === "fleet" ? context.view.shots.find((candidate) =>
+          candidate.seat === seat && candidate.cell === action.cell) : undefined;
+        formatted.title = shot ? (shot.hit ? "Shot hit" : "Shot missed") : "Fired a shot";
+      }
       formatted.coordinates = [action.cell];
       formatted.graphic = { kind: "fleet", cells: [action.cell], target: true };
     }
@@ -139,7 +147,7 @@ export function eventCard(document: Document, event: ShownEvent, context: FeedCo
     const button = target as HTMLButtonElement;
     button.type = "button";
     button.className = "event-select";
-    button.setAttribute("aria-label", `Show position after #${event.seq}: ${[formatted.agent, formatted.title, ...formatted.coordinates].join(", ")}`);
+    button.setAttribute("aria-label", `Show position after #${event.seq}: ${[formatted.agent, formatted.title, formatted.detail, ...formatted.coordinates].filter(Boolean).join(", ")}`);
     button.addEventListener("click", () => onSelect(event.seq));
     item.append(button);
   }

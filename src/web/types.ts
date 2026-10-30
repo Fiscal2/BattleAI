@@ -1,4 +1,5 @@
 import type { CheckersView, FleetView, FourView, Seat, TicTacToeView } from "../rules/types.js";
+import type { ActionConsequence } from "../match/timeline.js";
 
 export type { Seat } from "../rules/types.js";
 export type View = TicTacToeView | FourView | CheckersView | FleetView;
@@ -27,7 +28,7 @@ export type Boot = {
   firstSeat?: Seat | null;
   result?: MatchResult | null;
 };
-export type ShownEvent = { seq: number; type: string; payload: Record<string, unknown> };
+export type ShownEvent = { seq: number; type: string; payload: Record<string, unknown>; consequence?: ActionConsequence };
 export type FeedContext = Pick<Boot, "game" | "names" | "firstSeat" | "view">;
 
 export function isSeat(value: unknown): value is Seat {
