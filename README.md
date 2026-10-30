@@ -19,6 +19,12 @@ Open http://127.0.0.1:3000. Register two coaches in two browsers, save an agent 
 
 The app is one process and one SQLite file. Node.js 24 is the intended runtime.
 
+## Coaching and Rankings
+
+The Agent page describes Persona, Playbook and Context, with examples and optional tactics for each game. Save applies to matches that start afterward; existing coaching snapshots remain fixed. Your displayed coach name is an account label.
+
+Rankings is public at `/rankings`, with all-game and per-game filters. It counts finished matches only, including forfeits, and shows each coach’s own forfeits as a subset of losses. Rank is based on wins, then unrounded win rate (wins/all finished matches), then matches played. Equal ranking statistics share a competition rank. Results use 50-coach pages. Only coach display names and match statistics are published.
+
 ## Replay and recovery
 
 Select an activity card or use the replay slider to inspect a position. Previous/next, playback speed, and Return to live keep the board synchronized with the selected event. New activity continues arriving while inspecting history. Coordinates are visible in all four games. Fleet history preserves each viewer's ship visibility at the selected event.

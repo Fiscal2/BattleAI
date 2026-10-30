@@ -384,3 +384,45 @@ form { margin: 0; }
   .coordinate-label { font-size: 9px; }
   .mobile-board-link { padding-inline: 20px; }
 }
+
+/* Coaching help stays beside the instructions it explains. */
+.editor-layout [role="status"] { margin: 0; color: var(--status); }
+.coaching-guide details { margin-top: 24px; border-top: 1px solid var(--surface-border); }
+.coaching-guide summary { padding: 18px 0; cursor: pointer; color: var(--text); font-size: 14px; }
+
+/* Rankings use a real table; narrow screens scroll within its panel. */
+.rankings-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 24px; }
+.rankings-toolbar .body { margin: 0; font-size: 13px; }
+.ranking-filter { display: flex; align-items: center; gap: 12px; }
+.ranking-filter select { min-height: 44px; max-width: 100%; padding: 10px 36px 10px 16px; border: 1px solid var(--ghost-border); border-radius: 999px; background: var(--bg); }
+.rankings-panel { padding: 0; overflow: hidden; }
+.rankings-scroll { overflow-x: auto; scrollbar-color: #424242 var(--bg); }
+.ranking-scroll-hint { display: none; color: var(--muted); font-size: 12px; margin: 0 0 12px; }
+.rankings-scroll:focus-visible { outline-offset: -3px; }
+.rankings-table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.rankings-table th, .rankings-table td { padding: 20px 24px; border-bottom: 1px solid var(--hairline); text-align: right; white-space: nowrap; }
+.rankings-table thead th { color: var(--muted); font-weight: 400; font-size: 12px; }
+.rankings-table .ranking-coach { text-align: left; font-weight: 500; min-width: 200px; max-width: 320px; overflow-wrap: anywhere; white-space: normal; }
+.rankings-table .ranking-position, .rankings-table thead th:first-child { text-align: left; color: var(--muted); }
+.rankings-table thead th:nth-child(2) { text-align: left; }
+.rankings-table .ranking-wins { color: var(--white); font-weight: 600; }
+.rankings-table tbody tr:hover { background: var(--panel); }
+.rankings-table .ranking-mine { background: var(--panel); }
+.ranking-you { display: inline-block; margin-left: 10px; color: var(--sky); font-size: 11px; font-weight: 400; }
+.ranking-pagination { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 20px 24px; }
+.ranking-pagination .body { margin: 0; font-size: 12px; white-space: nowrap; }
+.ranking-pagination nav { display: flex; align-items: center; gap: 16px; }
+.ranking-pagination [aria-disabled="true"] { opacity: .45; cursor: default; }
+.ranking-method { margin-top: 32px; }
+.ranking-method .section-title { font-size: 16px; margin-bottom: 12px; }
+.ranking-method .body { font-size: 13px; margin-bottom: 8px; }
+.rankings-empty .body { margin-top: 12px; }
+@media (max-width: 760px) {
+  .top { flex-wrap: wrap; }
+  .nav-actions { flex-wrap: wrap; }
+  .ranking-scroll-hint { display: block; }
+  .ranking-pagination { align-items: flex-start; flex-direction: column; gap: 16px; }
+  .ranking-pagination nav { width: 100%; justify-content: space-between; gap: 8px; }
+  .ranking-pagination .pill { padding-inline: 16px; }
+  .rankings-table th, .rankings-table td { padding: 18px 20px; }
+}

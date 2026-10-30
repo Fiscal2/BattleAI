@@ -18,12 +18,14 @@ export function escapeHtml(value: string): string {
 }
 
 export function page(input: { title: string; coachName?: string; body: string }): string {
+  const rankings = `<a class="ghost-link${input.title === "Rankings" ? " current" : ""}" href="/rankings"${input.title === "Rankings" ? ' aria-current="page"' : ""}>Rankings</a>`;
   const account = input.coachName
     ? `<span class="who">${escapeHtml(input.coachName)}</span>
        <a class="ghost-link${input.title === "Agent" ? " current" : ""}" href="/agent"${input.title === "Agent" ? ' aria-current="page"' : ""}>Agent</a>
        <a class="ghost-link${input.title === "Matches" ? " current" : ""}" href="/matches"${input.title === "Matches" ? ' aria-current="page"' : ""}>Matches</a>
+       ${rankings}
        <form method="post" action="/logout"><button class="pill pill-ghost" type="submit">Log out</button></form>`
-    : `<a class="ghost-link" href="/login">Log in</a><a class="pill pill-primary" href="/register">Register</a>`;
+    : `${rankings}<a class="ghost-link" href="/login">Log in</a><a class="pill pill-primary" href="/register">Register</a>`;
   return `<!doctype html>
 <html lang="en">
 <head>

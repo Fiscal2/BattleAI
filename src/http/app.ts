@@ -13,6 +13,8 @@ import { escapeHtml, field, page, replayControls } from "./page.js";
 import { gameGraphic } from "./graphics.js";
 import { resumeCursor } from "./cursor.js";
 import { positionAt } from "../match/position.js";
+import { agentEditor } from "./agent-page.js";
+import { rankingsBody } from "./rankings-page.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const fonts: Record<string, string> = {
@@ -203,16 +205,7 @@ export function createApp(input: { store: Store; env: NodeJS.ProcessEnv; complet
       page({
         title: "Agent",
         coachName: coach.display_name,
-        body: `<div class="page-heading"><h1 class="page-title">Agent</h1><p class="body">Set the approach. Your agent makes the moves.</p></div>
-          <div class="editor-layout"><form class="panel form" method="post" action="/agent">
-            <div class="form-heading"><h2 class="section-title">Coaching</h2><p class="body">These instructions are copied when a match starts.</p></div>
-            ${field("Persona", "persona", agent.persona, { multiline: true })}
-            ${field("Playbook", "playbook", agent.playbook, { multiline: true })}
-            ${field("Context", "context", agent.context, { multiline: true })}
-            <div class="form-footer"><span class="body">Changes apply to future matches.</span><button class="pill pill-primary" type="submit">Save agent</button></div>
-          </form><aside class="coaching-guide" aria-label="Coaching guide"><h2 class="section-title">A clear game plan</h2>
-            <dl><dt>Persona</dt><dd>The temperament and priorities your agent should follow.</dd><dt>Playbook</dt><dd>Concrete tactics, openings, and responses to threats.</dd><dt>Context</dt><dd>Lessons and instructions to carry into the next match.</dd></dl>
-            <div class="guide-rule"></div><p class="body">Once play begins, the agent acts independently. Both coaching snapshots are visible on the match page.</p></aside></div>`,
+        body: agentEditor(agent, (request.query as { saved?: unknown }).saved === "1"),
       }),
     );
   });
@@ -225,7 +218,26 @@ export function createApp(input: { store: Store; env: NodeJS.ProcessEnv; complet
       playbook: body.playbook ?? "",
       context: body.context ?? "",
     });
-    return reply.redirect("/agent", 303);
+    return reply.redirect("/agent?saved=1", 303);
+  });
+
+  app.get("/rankings", async (request, reply) => {
+    reply.header("cache-control", "private, no-store").header("vary", "Cookie");
+    const query = request.query as { game?: unknown; page?: unknown };
+    const game = query.game === undefined || query.game === "all" ? undefined : query.game;
+    const rawPage = query.page === undefined ? "1" : query.page;
+    const pageNumber = typeof rawPage === "string" && /^[1-9]\d*$/.test(rawPage) ? Number(rawPage) : NaN;
+    const offset = (pageNumber - 1) * 50;
+    if ((game !== undefined && (typeof game !== "string" || !isGameId(game))) || !Number.isSafeInteger(pageNumber) || !Number.isSafeInteger(offset)) {
+      return reply.code(400).type("text/html").send(page({ title: "Rankings", body: '<h1 class="page-title">Invalid ranking filter</h1><p class="body">Choose an available game and a positive whole page number.</p><a class="pill pill-ghost" href="/rankings">View Rankings</a>' }));
+    }
+    const coach = coachOf(request);
+    const gameId = game as GameId | undefined;
+    const result = input.store.rankings({ gameId, limit: 50, offset });
+    if (pageNumber > Math.max(1, Math.ceil(result.total / 50))) {
+      return reply.code(404).type("text/html").send(page({ title: "Rankings", coachName: coach?.display_name, body: '<h1 class="page-title">Ranking page not found</h1><p class="body">This page has no results. Return to the first page.</p><a class="pill pill-ghost" href="/rankings">View Rankings</a>' }));
+    }
+    return reply.type("text/html").send(page({ title: "Rankings", coachName: coach?.display_name, body: rankingsBody({ ...result, gameId, page: pageNumber, coachId: coach?.id, labels }) }));
   });
 
   app.get("/matches", async (request, reply) => {

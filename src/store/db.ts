@@ -12,6 +12,17 @@ export type Coach = {
   created_at: string;
 };
 
+export type RankingRow = {
+  coachId: string;
+  displayName: string;
+  played: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  forfeits: number;
+  rank: number;
+};
+
 export type AgentRow = {
   coach_id: string;
   persona: string;
@@ -328,6 +339,37 @@ export function openStore(path: string) {
         return event;
       });
       return write();
+    },
+    rankings(input: { gameId?: GameId; limit: number; offset: number }): { rows: RankingRow[]; total: number } {
+      const from = `FROM matches m
+                    JOIN seats s ON s.match_id = m.id
+                    JOIN coaches c ON c.id = s.coach_id
+                    WHERE m.status = 'finished'${input.gameId === undefined ? "" : " AND m.game_id = @gameId"}`;
+      const filter = input.gameId === undefined ? {} : { gameId: input.gameId };
+      const read = db.transaction(() => {
+        const rows = db.prepare(
+          `WITH totals AS (
+             SELECT c.id AS coachId, c.display_name AS displayName, COUNT(*) AS played,
+                    SUM(CASE WHEN m.winner_seat = s.seat THEN 1 ELSE 0 END) AS wins,
+                    SUM(CASE WHEN m.winner_seat <> s.seat THEN 1 ELSE 0 END) AS losses,
+                    SUM(CASE WHEN m.result = 'draw' THEN 1 ELSE 0 END) AS draws,
+                    SUM(CASE WHEN m.result = 'forfeit' AND m.forfeit_seat = s.seat THEN 1 ELSE 0 END) AS forfeits
+             ${from}
+             GROUP BY c.id
+           ), ranked AS (
+             SELECT coachId, displayName, played, wins, losses, draws, forfeits,
+                    RANK() OVER (ORDER BY wins DESC, 1.0 * wins / played DESC, played DESC) AS rank
+             FROM totals
+           )
+           SELECT coachId, displayName, played, wins, losses, draws, forfeits, rank
+           FROM ranked
+           ORDER BY rank, displayName COLLATE NOCASE, coachId
+           LIMIT @limit OFFSET @offset`,
+        ).all({ ...filter, limit: input.limit, offset: input.offset }) as RankingRow[];
+        const { total } = db.prepare(`SELECT COUNT(DISTINCT c.id) AS total ${from}`).get(filter) as { total: number };
+        return { rows, total };
+      });
+      return read();
     },
     record(coachId: string): Array<{ match: MatchRow; line: string; opponent: string }> {
       const rows = db
