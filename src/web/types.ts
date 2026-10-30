@@ -8,7 +8,16 @@ export type MatchResult = {
   forfeitSeat: Seat | null;
   forfeitCause: string;
 };
+export type RunnerState = "stopped" | "running" | "unconfigured";
+export type Position = {
+  seq: number;
+  view: View | null;
+  firstSeat: Seat | null;
+  names: Record<string, string>;
+  result: MatchResult | null;
+};
 export type Boot = {
+  runner?: RunnerState;
   matchId: string;
   seq: number;
   view: View | null;

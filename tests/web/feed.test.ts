@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { eventCard, formatEvent, resultText } from "../../src/web/feed.ts";
 import { presentEvent } from "../../src/match/runner.ts";
 import type { FeedContext, ShownEvent, View } from "../../src/web/types.ts";
@@ -66,6 +66,21 @@ describe("result and lifecycle formatting", () => {
 });
 
 describe("timeline DOM", () => {
+  it("makes the complete history card a named native button when selectable", () => {
+    const document = new DocumentFixture();
+    const select = vi.fn();
+    const card = eventCard(document.asDocument(), action({ cell: "r2c3" }), context, select) as unknown as NodeFixture;
+    const button = card.find("event-select")[0];
+    expect(button.tagName).toBe("button");
+    expect(button.type).toBe("button");
+    expect(button.attributes["aria-label"]).toBe("Show position after #3: Bea, Placed X, r2c3");
+    expect(button.find("event-marker")).toHaveLength(1);
+    expect(button.find("event-content")).toHaveLength(1);
+    expect(button.find("event-graphic")).toHaveLength(1);
+    button.click();
+    expect(select).toHaveBeenCalledWith(3);
+  });
+
   it("renders untrusted names as text, provides CSS hooks and never displays raw payload JSON", () => {
     const document = new DocumentFixture();
     const name = '<img src=x onerror="alert(1)">';

@@ -11,6 +11,13 @@ export class NodeFixture {
   scrollHeight = 0;
   clientHeight = 0;
   scrollTop = 0;
+  value = "";
+  disabled = false;
+  hidden = false;
+  type = "";
+  min = "";
+  max = "";
+  private listeners = new Map<string, Array<() => void>>();
   private text = "";
 
   constructor(readonly tagName: string, readonly ownerDocument: DocumentFixture) {}
@@ -32,6 +39,17 @@ export class NodeFixture {
   setAttribute(name: string, value: string) {
     this.attributes[name] = value;
     if (name === "class") this.className = value;
+  }
+  removeAttribute(name: string) { delete this.attributes[name]; }
+  addEventListener(type: string, listener: () => void) {
+    this.listeners.set(type, [...this.listeners.get(type) ?? [], listener]);
+  }
+  dispatch(type: string) {
+    for (const listener of this.listeners.get(type) ?? []) listener();
+  }
+  click() { if (!this.disabled) this.dispatch("click"); }
+  querySelector(selector: string) {
+    return selector.startsWith(".") ? this.find(selector.slice(1))[0] ?? null : this.tags(selector)[0] ?? null;
   }
   append(...nodes: NodeFixture[]) {
     this.appendCalls += 1;

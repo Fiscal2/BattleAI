@@ -18,3 +18,22 @@ npm run dev
 Open http://127.0.0.1:3000. Register two coaches in two browsers, save an agent for each, create a match, and join it from the second coach. The spectator URL is the match address.
 
 The app is one process and one SQLite file. Node.js 24 is the intended runtime.
+
+## Replay and recovery
+
+Select an activity card or use the replay slider to inspect a position. Previous/next, playback speed, and Return to live keep the board synchronized with the selected event. New activity continues arriving while inspecting history. Coordinates are visible in all four games. Fleet history preserves each viewer's ship visibility at the selected event.
+
+Unexpected runner failures pause play and show a retry notice. Reloading an active match retries one runner per match. Missing model configuration leaves play paused. Server error logs include the match ID, without provider response details.
+
+## Validation
+
+Use Node.js 24, as required by `package.json`. Validation used Node.js 24.11.1.
+
+```bash
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+The browser suite builds the app and runs an isolated in-memory fixture server on port 3108. It covers replay, live catch-up, Fleet visibility, recovery, keyboard controls, and desktop/phone layouts. It makes no paid model calls and does not use the development database.

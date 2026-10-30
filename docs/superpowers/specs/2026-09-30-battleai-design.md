@@ -310,3 +310,13 @@ The existing Castling tokens and self-hosted Geist fonts remain the visual autho
 The initial timeline is inserted in one batch. New events append once per sequence. Board cells are retained for updates that change only captions or results. Completed matches do not open a stream; the result event closes an active stream. SSE resumes after the greater valid cursor from `?after=` and `Last-Event-ID`. When the second coach joins, waiting pages reload once to display the authoritative participants and coaching snapshots.
 
 The production browser bundle is minified and type checked separately from server code. Grids fit the available width. Action diagrams are inline vector geometry and require no image downloads.
+
+## Replay and recovery — 2026-10-16
+
+`GET /matches/:id/position?seq=N` returns the board and metadata folded only through sequence N, using the current caller's viewer role. N is a nonnegative safe integer no greater than the latest committed sequence; N=0 is before seating. Responses are private and not cached. This endpoint never starts a runner. Historical Fleet ship visibility, participants and results use the same prefix as the board.
+
+Activity cards select positions. Previous/next, a native range control, playback at 0.5×/1×/2× and Return to live/latest share that selection. Live state remains separate and continues receiving events during inspection. Superseded requests cannot overwrite a newer selection or live mode. Failed position loads preserve the displayed board and offer retry/return. Waiting-page participant refresh is deferred during inspection until Return to live. Mobile activity includes a link back to the board controls.
+
+Visible labels identify Tic rows/columns, Four columns, Checkers playable squares 1–32, and Fleet columns A–J/rows 1–10. Labels supplement existing cell accessibility text.
+
+Missing or non-string model content uses the invalid-action budget; HTTP, transport and invalid-response-JSON failures use the provider budget. Unexpected runner exceptions leave matches active, emit a safe server diagnostic and notify connected clients that play paused. Match-page/stream requests retry a missing active loop once per process, guarded before asynchronous work starts. An unconfigured process keeps matches paused. These changes add no schema migration or runtime service.

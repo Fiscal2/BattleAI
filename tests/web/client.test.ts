@@ -174,4 +174,22 @@ describe("browser entry point", () => {
     expect(refresh).toHaveBeenCalledOnce();
     expect(initial.source.close).not.toHaveBeenCalled();
   });
+  it.each(["stopped", "unconfigured"] as const)("shows a boot %s runner and recovers on a running notice", (runner) => {
+    const page = fixture({ ...boot, runner });
+    expect(page.status.textContent).toBe("Play paused. Reload to retry.");
+    expect(page.connection?.textContent).toBe("Play paused. Reload to retry.");
+    page.source.onopen?.();
+    expect(page.connection?.textContent).toBe("Play paused. Reload to retry.");
+    page.source.onmessage?.({ data: JSON.stringify({ runner: "running" }) });
+    expect(page.status.textContent).toBe("In progress");
+    expect(page.connection?.textContent).toBe("Live");
+    page.source.onmessage?.({ data: JSON.stringify({ runner: "stopped", error: "private provider detail" }) });
+    expect(page.status.textContent).toBe("Play paused. Reload to retry.");
+    expect(page.connection?.textContent).not.toContain("private");
+    expect(page.events.children).toHaveLength(0);
+    expect(page.source.close).not.toHaveBeenCalled();
+    page.source.onmessage?.({ data: JSON.stringify({ runner: "running" }) });
+    expect(page.status.textContent).toBe("In progress");
+  });
+
 });

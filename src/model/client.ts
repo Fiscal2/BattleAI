@@ -9,7 +9,9 @@ export type ModelEnv = {
   model: string;
 };
 
-export type Completion = { content: string } | { error: string };
+export type Completion =
+  | { content: string }
+  | { error: string; category?: "provider" | "invalid_reply" };
 
 export function modelEnv(source: NodeJS.ProcessEnv): ModelEnv | null {
   const baseUrl = source.MODEL_BASE_URL?.replace(/\/$/, "");
@@ -19,7 +21,7 @@ export function modelEnv(source: NodeJS.ProcessEnv): ModelEnv | null {
   return { baseUrl, apiKey, model };
 }
 
-export function completeChat(
+export async function completeChat(
   env: ModelEnv,
   messages: ChatMessage[],
   timeoutMs = 60_000,
@@ -27,24 +29,34 @@ export function completeChat(
 ): Promise<Completion> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  return fetchImpl(`${env.baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${env.apiKey}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({ model: env.model, messages }),
-    signal: controller.signal,
-  })
-    .then(async (response) => {
-      if (!response.ok) return { error: `HTTP ${response.status}` };
-      const body = (await response.json()) as {
+  try {
+    const response = await fetchImpl(`${env.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${env.apiKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ model: env.model, messages }),
+      signal: controller.signal,
+    });
+    if (!response.ok) return { error: `HTTP ${response.status}`, category: "provider" };
+    let body;
+    try {
+      body = (await response.json()) as {
         choices?: Array<{ message?: { content?: unknown } }>;
+      } | null;
+    } catch {
+      return {
+        error: controller.signal.aborted ? "timeout" : "invalid response JSON",
+        category: "provider",
       };
-      const content = body.choices?.[0]?.message?.content;
-      if (typeof content !== "string") return { error: "missing content" };
-      return { content };
-    })
-    .catch(() => ({ error: "timeout" }))
-    .finally(() => clearTimeout(timer));
+    }
+    const content = body?.choices?.[0]?.message?.content;
+    if (typeof content !== "string") return { error: "missing content", category: "invalid_reply" };
+    return { content };
+  } catch {
+    return { error: controller.signal.aborted ? "timeout" : "request failed", category: "provider" };
+  } finally {
+    clearTimeout(timer);
+  }
 }
