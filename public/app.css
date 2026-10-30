@@ -187,7 +187,7 @@ form { margin: 0; }
 .connection-status { font-size: 11px; color: var(--muted); margin: 0; text-align: right; max-width: 120px; }
 .events { list-style: none; padding: 4px 24px 12px; margin: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; min-height: 240px; max-height: 530px; flex: 1; }
 .events:empty::after { content: "Recorded actions will appear here when play begins."; display: block; padding: 32px 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
-.event-item { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 14px; position: relative; padding: 20px 0; border-bottom: 1px solid var(--hairline); content-visibility: auto; contain-intrinsic-size: auto 112px; }
+.event-item { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 14px; position: relative; padding: 20px 12px; border-bottom: 1px solid var(--hairline); content-visibility: auto; contain-intrinsic-size: auto 112px; }
 .event-item:last-child { border-bottom: 0; }
 .event-marker { width: 7px; height: 7px; margin-top: 5px; border-radius: 999px; background: var(--agent-color, var(--muted)); }
 .event-content { min-width: 0; }
@@ -351,12 +351,14 @@ form { margin: 0; }
 .replay-actions .pill { font-size: 12px; min-height: 36px; padding: 8px 14px; }
 .replay-actions .replay-step { width: 36px; padding: 8px; }
 .replay-step svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-.replay-speed-label select { border: 1px solid var(--ghost-border); border-radius: 999px; background: transparent; padding: 8px 10px; font-size: 12px; min-height: 36px; cursor: pointer; }
+.replay-speed-label { position: relative; display: inline-flex; align-items: center; }
+.replay-speed-label select { appearance: none; border: 1px solid var(--ghost-border); border-radius: 999px; background: transparent; padding: 8px 32px 8px 14px; font-size: 12px; min-width: 76px; min-height: 36px; cursor: pointer; }
+.replay-speed-icon { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 12px; height: 12px; pointer-events: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .replay-error { color: var(--rose); font-size: 12px; line-height: 1.6; margin: 12px 0 0; }
 .replay-error:empty { display: none; }
 .event-select { display: grid; grid-column: 1 / -1; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 14px; border: 0; background: none; padding: 0; color: inherit; font: inherit; text-align: left; min-width: 0; width: 100%; cursor: pointer; border-radius: 6px; }
 .event-select:hover .event-title { color: var(--sky); }
-.event-item.is-selected { background: var(--card); }
+.event-item.is-selected { background: var(--card); border-radius: 12px; }
 .event-item.is-selected .event-marker { background: var(--sky); }
 .event-select[aria-current="step"] .event-title { color: var(--sky); }
 .mobile-board-link { display: none; }
@@ -380,7 +382,6 @@ form { margin: 0; }
   .replay-controls { padding: 18px 20px; }
   .replay-actions { align-items: stretch; flex-direction: column; }
   .replay-transport { justify-content: space-between; }
-  .replay-speed-label select { padding-inline: 12px; }
   .coordinate-label { font-size: 9px; }
   .mobile-board-link { padding-inline: 20px; }
 }
