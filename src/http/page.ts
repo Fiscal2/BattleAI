@@ -17,7 +17,8 @@ export function escapeHtml(value: string): string {
   });
 }
 
-export function page(input: { title: string; coachName?: string; body: string }): string {
+export function page(input: { title: string; coachName?: string; body: string; authNext?: string }): string {
+  const authNext = input.authNext ? `?next=${encodeURIComponent(input.authNext)}` : "";
   const rankings = `<a class="ghost-link${input.title === "Rankings" ? " current" : ""}" href="/rankings"${input.title === "Rankings" ? ' aria-current="page"' : ""}>Rankings</a>`;
   const account = input.coachName
     ? `<span class="who">${escapeHtml(input.coachName)}</span>
@@ -25,7 +26,7 @@ export function page(input: { title: string; coachName?: string; body: string })
        <a class="ghost-link${input.title === "Matches" ? " current" : ""}" href="/matches"${input.title === "Matches" ? ' aria-current="page"' : ""}>Matches</a>
        ${rankings}
        <form method="post" action="/logout"><button class="pill pill-ghost" type="submit">Log out</button></form>`
-    : `${rankings}<a class="ghost-link" href="/login">Log in</a><a class="pill pill-primary" href="/register">Register</a>`;
+    : `${rankings}<a class="ghost-link" href="/login${authNext}">Log in</a><a class="pill pill-primary" href="/register${authNext}">Register</a>`;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -67,7 +68,7 @@ export function replayControls(seq: number): string {
       <button id="replay-prev" class="pill pill-ghost replay-step" type="button" aria-label="Previous event"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12 5-5 5 5 5"/></svg></button>
       <button id="replay-play" class="pill pill-ghost" type="button">Play</button>
       <button id="replay-next" class="pill pill-ghost replay-step" type="button" aria-label="Next event"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m8 5 5 5-5 5"/></svg></button>
-      <label class="replay-speed-label"><span class="sr-only">Playback speed</span><select id="replay-speed" aria-label="Playback speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select></label>
+      <label class="replay-speed-label"><span class="sr-only">Playback speed</span><select id="replay-speed" aria-label="Playback speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select><svg class="replay-speed-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m4 6 4 4 4-4"/></svg></label>
     </div><button id="replay-live" class="pill pill-ghost" type="button">Return to live</button></div>
     <p id="replay-error" class="replay-error" role="status"></p>
   </section>`;

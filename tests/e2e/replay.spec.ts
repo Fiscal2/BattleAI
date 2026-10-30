@@ -193,3 +193,69 @@ test("desktop and phone layouts retain coordinates and keyboard-accessible contr
   await expect(page.locator(".event-item").last()).toHaveCSS("animation-name", "none");
   expect(errors).toEqual([]);
 });
+
+test("replay controls reserve space for the speed arrow inside the pill", async ({ page }, info) => {
+  const { ids } = await fixtures(page);
+  for (const width of [375, 560, 800, 1440]) {
+    await page.setViewportSize({ width, height: 752 });
+    await page.goto(`/matches/${ids.tic}`);
+    const speed = page.getByRole("combobox", { name: "Playback speed" });
+    const icon = page.locator(".replay-speed-icon");
+    await expect(icon).toBeVisible();
+    for (const value of ["0.5", "1", "2"]) {
+      await speed.selectOption(value);
+      const bounds = await speed.boundingBox();
+      const arrow = await icon.boundingBox();
+      expect(bounds).not.toBeNull(); expect(arrow).not.toBeNull();
+      expect(arrow!.x - bounds!.x).toBeGreaterThanOrEqual(8);
+      expect(bounds!.x + bounds!.width - arrow!.x - arrow!.width).toBeGreaterThanOrEqual(8);
+      expect(arrow!.y - bounds!.y).toBeGreaterThanOrEqual(8);
+      expect(bounds!.y + bounds!.height - arrow!.y - arrow!.height).toBeGreaterThanOrEqual(8);
+      const textEnd = await speed.evaluate((node: HTMLSelectElement) => {
+        const style = getComputedStyle(node);
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d")!; context.font = style.font;
+        return node.getBoundingClientRect().left + parseFloat(style.paddingLeft) + context.measureText(node.selectedOptions[0].text).width;
+      });
+      expect(arrow!.x - textEnd).toBeGreaterThanOrEqual(6);
+    }
+    const arrow = await icon.boundingBox();
+    const hitTarget = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.id, { x: arrow!.x + arrow!.width / 2, y: arrow!.y + arrow!.height / 2 });
+    expect(hitTarget).toBe("replay-speed");
+    await speed.selectOption("1"); await speed.focus();
+    await expect(speed).toBeFocused();
+    await expect(speed).toHaveAccessibleName("Playback speed");
+    await expect(speed).toHaveValue("1");
+    await page.locator(".replay-transport").screenshot({ path: info.outputPath(`speed-${width}.png`) });
+  }
+});
+
+test("activity highlight leaves room for dots and the keyboard focus outline", async ({ page }, info) => {
+  const { ids } = await fixtures(page);
+  for (const width of [375, 560, 800, 1440]) {
+    await page.setViewportSize({ width, height: 752 });
+    await page.goto(`/matches/${ids.fleet}`);
+    await inspect(page, 3);
+    const card = page.locator('.event-item[data-seq="3"]');
+    const previous = page.locator('.event-item[data-seq="2"]');
+    const following = page.locator('.event-item[data-seq="4"]');
+    await expect(previous).toHaveCSS("border-bottom-color", "rgba(0, 0, 0, 0)");
+    await expect(card).toHaveCSS("border-bottom-color", "rgba(0, 0, 0, 0)");
+    await expect(following).not.toHaveCSS("border-bottom-color", "rgba(0, 0, 0, 0)");
+    const button = card.locator(".event-select");
+    await card.scrollIntoViewIfNeeded(); await button.hover(); await button.focus();
+    const bounds = await card.boundingBox();
+    const dot = await card.locator(".event-marker").boundingBox();
+    const target = await button.boundingBox();
+    expect(dot!.x - bounds!.x).toBeGreaterThanOrEqual(8);
+    expect(target!.x - bounds!.x).toBeGreaterThanOrEqual(8);
+    expect(bounds!.x + bounds!.width - target!.x - target!.width).toBeGreaterThanOrEqual(8);
+    expect(target!.y - bounds!.y).toBeGreaterThanOrEqual(8);
+    await expect(button).toBeFocused();
+    await card.screenshot({ path: info.outputPath(`activity-${width}.png`) });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    await inspect(page, 5);
+    await expect(previous).not.toHaveCSS("border-bottom-color", "rgba(0, 0, 0, 0)");
+    await expect(card).not.toHaveCSS("border-bottom-color", "rgba(0, 0, 0, 0)");
+  }
+});

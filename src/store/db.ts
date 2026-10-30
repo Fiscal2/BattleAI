@@ -45,6 +45,21 @@ export type MatchRow = {
   ended_at: string | null;
 };
 
+export type CoachMatch = {
+  id: string;
+  gameId: GameId;
+  status: MatchRow["status"];
+  result: MatchRow["result"];
+  winnerSeat: Seat | null;
+  forfeitSeat: Seat | null;
+  forfeitCause: MatchRow["forfeit_cause"];
+  mySeat: Seat;
+  opponentName: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  endedAt: string | null;
+};
+
 export type SeatRow = {
   match_id: string;
   seat: Seat;
@@ -370,6 +385,22 @@ export function openStore(path: string) {
         return { rows, total };
       });
       return read();
+    },
+    coachMatches(coachId: string): CoachMatch[] {
+      return db.prepare(
+        `SELECT m.id, m.game_id AS gameId, m.status, m.result,
+                m.winner_seat AS winnerSeat, m.forfeit_seat AS forfeitSeat,
+                m.forfeit_cause AS forfeitCause, mine.seat AS mySeat,
+                opponent.display_name AS opponentName,
+                m.created_at AS createdAt, m.started_at AS startedAt, m.ended_at AS endedAt
+         FROM matches m
+         JOIN seats mine ON mine.match_id = m.id AND mine.coach_id = ?
+         LEFT JOIN seats other ON other.match_id = m.id AND other.seat <> mine.seat
+         LEFT JOIN coaches opponent ON opponent.id = other.coach_id
+         WHERE m.status IN ('active', 'waiting', 'finished')
+         ORDER BY CASE m.status WHEN 'active' THEN 0 WHEN 'waiting' THEN 1 ELSE 2 END,
+                  COALESCE(m.ended_at, m.started_at, m.created_at) DESC, m.id DESC`,
+      ).all(coachId) as CoachMatch[];
     },
     record(coachId: string): Array<{ match: MatchRow; line: string; opponent: string }> {
       const rows = db

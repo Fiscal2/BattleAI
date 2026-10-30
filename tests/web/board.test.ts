@@ -138,4 +138,75 @@ describe("accessible public boards", () => {
     expect(board.find("coordinate-board")).toHaveLength(1);
     expect(board.find("square")).toHaveLength(9);
   });
+
+  it("highlights every cell of intersecting Tic wins while preserving coordinates and last move", () => {
+    const { board } = render({
+      game: "tictactoe", cells: ["X", "O", "X", "O", "X", "O", "X", "O", "X"],
+      turn: null, lastCell: "r2c2", outcome: { winner: 1 },
+    });
+    expect(board.find("winning").map((cell) => cell.attributes["aria-label"]))
+      .toEqual(["r1c1", "r1c3", "r2c2", "r3c1", "r3c3"].map((id) => `${id}: X, Bea, winning line`));
+    expect(board.find("winning").every((cell) => cell.className.includes("seat-1"))).toBe(true);
+    expect(board.find("last")[0].attributes["aria-label"]).toBe("r2c2: X, Bea, winning line");
+    expect(board.find("square")).toHaveLength(9);
+    expect(board.find("coordinate-columns")[0].attributes["aria-hidden"]).toBe("true");
+    expect(board.find("coordinate-rows")[0].attributes["aria-hidden"]).toBe("true");
+  });
+
+  it("highlights the full Four run on the bottom row using the winner's actual side", () => {
+    const grid = Array.from({ length: 6 }, () => Array<"A" | "B" | null>(7).fill(null));
+    grid[0] = ["B", "B", "B", "B", "B", null, null];
+    grid[1] = ["A", "A", "A", null, null, null, null];
+    const { board } = render({ game: "four", grid, turn: null, last: { row: 0, column: 3 }, outcome: { winner: 0 } });
+    expect(board.find("winning").map((cell) => cell.attributes["aria-label"]))
+      .toEqual([1, 2, 3, 4, 5].map((column) => `Column ${column}, row 1: B disc, Ada, winning line`));
+    expect(board.find("winning").every((cell) => cell.find("disc")[0].className.includes("seat-0"))).toBe(true);
+    expect(board.find("square")).toHaveLength(42);
+    expect(board.find("square")[0].attributes["aria-label"]).toBe("Column 1, row 6: empty");
+    expect(board.find("square")[40].attributes["aria-label"]).toBe("Column 6, row 1: empty");
+    expect(board.find("last")[0].className).toContain("winning");
+  });
+
+  it.each(["tictactoe", "four"] as const)("refreshes %s highlights on outcome changes but reuses cells for caption-only changes", (game) => {
+    const view: View = game === "tictactoe"
+      ? { game, cells: ["X", "X", "X", null, null, null, null, null, null], turn: 0, lastCell: "r1c3", outcome: "ongoing" }
+      : { game, grid: [["A", "A", "A", "A", null, null, null], ...Array.from({ length: 5 }, () => Array(7).fill(null))], turn: 0, last: { row: 0, column: 4 }, outcome: "ongoing" };
+    const { board, update } = render(view);
+    const original = board.find(game === "four" ? "four" : "tic")[0];
+    expect(board.find("winning")).toHaveLength(0);
+    const won: View = { ...view, turn: null, outcome: { winner: 1 } };
+    update(won);
+    const winningGrid = board.find(game === "four" ? "four" : "tic")[0];
+    expect(winningGrid).not.toBe(original);
+    expect(board.find("winning")).toHaveLength(game === "four" ? 4 : 3);
+    update(won, { result: "decided", winnerSeat: 1, forfeitSeat: null, forfeitCause: "" }, true);
+    expect(board.find(game === "four" ? "four" : "tic")[0]).toBe(winningGrid);
+    expect(board.find("square")[0]).toBe(winningGrid.children[0]);
+    update({ ...won, outcome: "draw" });
+    expect(board.find("winning")).toHaveLength(0);
+    expect(board.find("square").every((cell) => !cell.attributes["aria-label"].includes(", winning line"))).toBe(true);
+    const drawnGrid = board.find(game === "four" ? "four" : "tic")[0];
+    update(view);
+    expect(board.find(game === "four" ? "four" : "tic")[0]).toBe(drawnGrid);
+  });
+
+  it.each(["tictactoe", "four"] as const)("clears %s winning cells for early history and never derives them from a forfeit result", (game) => {
+    const view: View = game === "tictactoe"
+      ? { game, cells: ["X", "X", "X", "O", "O", null, null, null, null], turn: null, lastCell: "r1c3", outcome: { winner: 1 } }
+      : { game, grid: [["A", "A", "A", "A", "B", "B", null], ...Array.from({ length: 5 }, () => Array(7).fill(null))], turn: null, last: { row: 0, column: 4 }, outcome: { winner: 1 } };
+    const rendererContext: FeedContext = { ...context, view };
+    const { board, update } = render(view, rendererContext);
+    expect(board.find("winning")).toHaveLength(game === "four" ? 4 : 3);
+    const historical: View = view.game === "tictactoe"
+      ? { ...view, cells: ["X", "X", null, "O", null, null, null, null, null], turn: 0, lastCell: "r1c2", outcome: "ongoing" }
+      : { ...view, grid: [["A", "A", "A", null, "B", "B", null], ...Array.from({ length: 5 }, () => Array(7).fill(null))], turn: 0, last: { row: 0, column: 3 }, outcome: "ongoing" };
+    // Context can still refer to the live winner while replay displays an earlier view.
+    update(historical, { result: "forfeit", winnerSeat: 1, forfeitSeat: 0, forfeitCause: "timeout" }, true);
+    expect(board.find("winning")).toHaveLength(0);
+    expect(board.find("square").every((cell) => !cell.attributes["aria-label"].includes(", winning line"))).toBe(true);
+    update({ ...view, outcome: "ongoing" }, { result: "forfeit", winnerSeat: 1, forfeitSeat: 0, forfeitCause: "timeout" }, true);
+    expect(board.find("winning")).toHaveLength(0);
+    update(view);
+    expect(board.find("winning")).toHaveLength(game === "four" ? 4 : 3);
+  });
 });

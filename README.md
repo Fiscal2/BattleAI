@@ -43,3 +43,9 @@ npm run test:e2e
 ```
 
 The browser suite builds the app and runs an isolated in-memory fixture server on port 3108. It covers replay, live catch-up, Fleet visibility, recovery, keyboard controls, and desktop/phone layouts. It makes no paid model calls and does not use the development database.
+
+## Match journey
+
+Matches groups your active, waiting and completed matches, with links to resume, share an invitation or replay. Match pages provide Copy match link and a selectable manual-copy fallback. A signed-out invitation preserves its match destination through login/registration; taking a seat always requires Join match.
+
+Recorded actions show actual Checkers captures/promotions and Fleet sinks. Winning Tic/Four lines follow the selected replay position. Completed matches show a factual final summary, with Edit agent and Create rematch for participants. A rematch creates a fresh waiting match for the same game; the opponent must choose to join, and current coaching is copied at that join.

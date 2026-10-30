@@ -1,5 +1,6 @@
 import { resultText } from "./feed.js";
 import { agentName, isSeat, type FeedContext, type MatchResult, type Seat, type View } from "./types.js";
+import { winningLine } from "./winning-line.js";
 
 export function boardCaption(view: View | null, context: FeedContext, result?: MatchResult | null, finished = false): string {
   if (result) {
@@ -92,15 +93,17 @@ export function createBoardRenderer(board: HTMLElement, context: FeedContext) {
     return wrapper;
   };
 
-  function renderSurface(view: View) {
+  function renderSurface(view: View, winningCells: ReadonlySet<string>) {
     if (view.game === "tictactoe") {
       const node = grid("tic", 3, 270, "Tic-tac-toe board");
       view.cells.forEach((mark, index) => {
         const id = `r${Math.floor(index / 3) + 1}c${index % 3 + 1}`;
-        const cell = square(`${id}: ${mark ? pieceLabel(mark, mark === "X") : "empty"}`);
+        const winning = winningCells.has(id);
+        const cell = square(`${id}: ${mark ? pieceLabel(mark, mark === "X") : "empty"}${winning ? ", winning line" : ""}`);
         cell.textContent = mark ?? "";
         if (mark) cell.className += `${mark === "X" ? " side-a" : " side-b"}${seatClass(mark === "X")}`;
         if (id === view.lastCell) cell.classList.add("last");
+        if (winning) cell.classList.add("winning");
         node.append(cell);
       });
       surface.replaceChildren(withCoordinates(node, ["c1", "c2", "c3"], ["r1", "r2", "r3"]));
@@ -109,9 +112,11 @@ export function createBoardRenderer(board: HTMLElement, context: FeedContext) {
       for (let row = view.grid.length - 1; row >= 0; row -= 1) {
         for (let column = 0; column < 7; column += 1) {
           const mark = view.grid[row]?.[column] ?? null;
-          const cell = square(`Column ${column + 1}, row ${row + 1}: ${mark ? pieceLabel(`${mark} disc`, mark === "A") : "empty"}`);
+          const winning = winningCells.has(`r${row + 1}c${column + 1}`);
+          const cell = square(`Column ${column + 1}, row ${row + 1}: ${mark ? pieceLabel(`${mark} disc`, mark === "A") : "empty"}${winning ? ", winning line" : ""}`);
           if (mark) cell.append(disc(`disc ${mark === "A" ? "side-a" : "side-b"}${seatClass(mark === "A")}`, mark));
           if (view.last?.row === row && view.last.column === column + 1) cell.classList.add("last");
+          if (winning) cell.classList.add("winning");
           node.append(cell);
         }
       }
@@ -176,14 +181,15 @@ export function createBoardRenderer(board: HTMLElement, context: FeedContext) {
   }
 
   return (view: View | null, result?: MatchResult | null, finished = false) => {
-    // Turn/outcome-only messages update the caption without replacing board cells.
+    // Caption-only messages reuse cells; a changed winning line refreshes the surface.
+    const winningCells = winningLine(view, context.firstSeat);
     const boardState = view?.game === "tictactoe" ? [view.cells, view.lastCell]
       : view?.game === "four" ? [view.grid, view.last]
       : view?.game === "checkers" ? [view.pieces, view.lastPath]
       : view?.game === "fleet" ? [view.ships, view.shots, view.lastShot] : null;
-    const key = JSON.stringify([view?.game, boardState, context.firstSeat, context.names]);
+    const key = JSON.stringify([view?.game, boardState, context.firstSeat, context.names, [...winningCells]]);
     if (key !== lastBoard) {
-      if (view) renderSurface(view);
+      if (view) renderSurface(view, winningCells);
       else {
         const preview = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         preview.setAttribute("class", "waiting-board");

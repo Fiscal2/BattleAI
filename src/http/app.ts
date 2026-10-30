@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import argon2 from "argon2";
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
-import { ensureLoop, presentEvent, viewFor, type Completer } from "../match/runner.js";
+import { ensureLoop, viewFor, type Completer } from "../match/runner.js";
 import { modelEnv, type ModelEnv } from "../model/client.js";
 import { gameById, isGameId } from "../rules/index.js";
 import type { GameId, Seat } from "../rules/types.js";
@@ -15,6 +15,8 @@ import { resumeCursor } from "./cursor.js";
 import { positionAt } from "../match/position.js";
 import { agentEditor } from "./agent-page.js";
 import { rankingsBody } from "./rankings-page.js";
+import { matchesBody } from "./matches-page.js";
+import { timeline } from "../match/timeline.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const fonts: Record<string, string> = {
@@ -85,7 +87,7 @@ export function createApp(input: { store: Store; env: NodeJS.ProcessEnv; complet
     notifyRunner(matchId, "running");
   };
   const renderMatch = (id: string, coach: Coach | undefined, error = "") =>
-    matchPage(input.store, id, coach, error, input.store.getMatch(id)?.status === "active" ? runnerState(id) : undefined);
+    matchPage(input.store, id, coach, error, input.store.getMatch(id)?.status === "active" ? runnerState(id) : undefined, configured());
 
   app.removeContentTypeParser("application/json");
   app.addContentTypeParser("application/json", { parseAs: "string" }, (_request, body, done) => {
@@ -146,21 +148,22 @@ export function createApp(input: { store: Store; env: NodeJS.ProcessEnv; complet
     return reply.send(createReadStream(path));
   });
 
-  app.get("/register", async (_request, reply) => {
-    reply.type("text/html").send(authPage("Create a coach", "/register", "Register"));
+  app.get("/register", async (request, reply) => {
+    reply.type("text/html").send(authPage("Create a coach", "/register", "Register", "", invitationPath((request.query as { next?: unknown }).next)));
   });
   app.post("/register", async (request, reply) => {
     const body = request.body as Record<string, string>;
+    const next = invitationPath(body.next);
     const email = body.email ?? "";
     const displayName = (body.displayName ?? "").trim();
     const password = body.password ?? "";
     if (!email.includes("@") || displayName.length === 0 || password.length < 8) {
       return reply
         .type("text/html")
-        .send(authPage("Create a coach", "/register", "Register", "Use an email, a display name, and a password of at least 8 characters."));
+        .send(authPage("Create a coach", "/register", "Register", "Use an email, a display name, and a password of at least 8 characters.", next));
     }
     if (input.store.coachByEmail(email)) {
-      return reply.type("text/html").send(authPage("Create a coach", "/register", "Register", "That email is already registered."));
+      return reply.type("text/html").send(authPage("Create a coach", "/register", "Register", "That email is already registered.", next));
     }
     const coach = input.store.createCoach({
       email,
@@ -168,21 +171,22 @@ export function createApp(input: { store: Store; env: NodeJS.ProcessEnv; complet
       passwordHash: await argon2.hash(password),
     });
     setSession(reply, input.store.createSession(coach.id));
-    return reply.redirect("/agent", 303);
+    return reply.redirect(next ?? "/agent", 303);
   });
 
-  app.get("/login", async (_request, reply) => {
-    reply.type("text/html").send(authPage("Log in", "/login", "Log in"));
+  app.get("/login", async (request, reply) => {
+    reply.type("text/html").send(authPage("Log in", "/login", "Log in", "", invitationPath((request.query as { next?: unknown }).next)));
   });
   app.post("/login", async (request, reply) => {
     const body = request.body as Record<string, string>;
+    const next = invitationPath(body.next);
     const coach = input.store.coachByEmail(body.email ?? "");
     const password = body.password ?? "";
     if (!coach || !(await argon2.verify(coach.password_hash, password))) {
-      return reply.type("text/html").send(authPage("Log in", "/login", "Log in", "Email or password is wrong."));
+      return reply.type("text/html").send(authPage("Log in", "/login", "Log in", "Email or password is wrong.", next));
     }
     setSession(reply, input.store.createSession(coach.id));
-    return reply.redirect("/matches", 303);
+    return reply.redirect(next ?? "/matches", 303);
   });
 
   app.post("/logout", async (request, reply) => {
@@ -243,28 +247,9 @@ export function createApp(input: { store: Store; env: NodeJS.ProcessEnv; complet
   app.get("/matches", async (request, reply) => {
     const coach = requireCoach(request, reply);
     if (!coach) return;
-    const rows = input.store.record(coach.id);
-    const list = rows
-      .map((row) => {
-        const word = row.line.split(", ").slice(2).join(", ");
-        return `<a class="record" href="/matches/${row.match.id}"><span>${escapeHtml(labels[row.match.game_id])}</span><span>${escapeHtml(row.opponent)}</span><span>${escapeHtml(word)}</span></a>`;
-      })
-      .join("");
-    reply.type("text/html").send(
-      page({
-        title: "Matches",
-        coachName: coach.display_name,
-        body: `<div class="page-heading"><h1 class="page-title">Matches</h1><p class="body">Choose a game, invite a coach, and watch your agents play.</p></div>
-          <form class="panel match-create" method="post" action="/matches">
-            <fieldset class="game-picker"><legend class="section-title">Choose your arena</legend>
-              ${(Object.keys(labels) as GameId[]).map((gameId, index) => `<label class="game-option"><input type="radio" name="gameId" value="${gameId}"${index === 0 ? " checked" : ""}><span class="game-choice">${gameGraphic(gameId)}<span class="game-name">${labels[gameId]}</span><span class="game-description">${gameId === "fleet" ? "Hidden fleets · 10 × 10" : gameId === "checkers" ? "English draughts · 8 × 8" : gameId === "four" ? "Gravity · 7 × 6" : "Three in a line · 3 × 3"}</span><span class="choice-indicator" aria-hidden="true"></span></span></label>`).join("")}
-            </fieldset>
-            <div class="form-footer"><p class="body">Share the match link with your opponent.</p><button class="pill pill-primary" type="submit">Create match <span aria-hidden="true">→</span></button></div>
-          </form>
-          <section class="records-section"><div class="section-heading"><h2 class="section-title">Match record</h2><span class="count-badge">${rows.length}</span></div>
-          <div class="records">${list || `<div class="empty-record">${gameGraphic("four")}<div><h3>No finished matches yet</h3><p class="body">Completed matches and their replays will appear here.</p></div></div>`}</div></section>`,
-      }),
-    );
+    reply.header("cache-control", "private, no-store").header("vary", "Cookie").type("text/html").send(page({
+      title: "Matches", coachName: coach.display_name, body: matchesBody(input.store.coachMatches(coach.id), labels),
+    }));
   });
 
   app.post("/matches", async (request, reply) => {
@@ -273,6 +258,18 @@ export function createApp(input: { store: Store; env: NodeJS.ProcessEnv; complet
     const gameId = (request.body as { gameId?: string }).gameId ?? "";
     if (!isGameId(gameId)) return reply.code(400).send("Unknown game.");
     const match = input.store.createMatch(coach.id, gameId);
+    return reply.redirect(`/matches/${match.id}`, 303);
+  });
+
+  app.post("/matches/:id/rematch", async (request, reply) => {
+    const coach = requireCoach(request, reply);
+    if (!coach) return;
+    const id = (request.params as { id: string }).id;
+    const source = input.store.getMatch(id);
+    if (!source) return reply.code(404).send("Match not found.");
+    if (!input.store.seats(id).some(seat => seat.coach_id === coach.id)) return reply.code(403).send("Only a participant can create a rematch.");
+    if (source.status !== "finished") return reply.code(409).send("Finish this match before creating a rematch.");
+    const match = input.store.createMatch(coach.id, source.game_id);
     return reply.redirect(`/matches/${match.id}`, 303);
   });
 
@@ -331,20 +328,21 @@ export function createApp(input: { store: Store; env: NodeJS.ProcessEnv; complet
     // An idle waiting match has no body yet; announce the live connection immediately.
     reply.raw.flushHeaders();
     const seen = new Set<number>();
-    const send = (event: EventRow) => {
-      if (seen.has(event.seq) || event.seq <= after) return;
-      seen.add(event.seq);
-      const payload = JSON.parse(event.payload_json) as Record<string, unknown>;
+    const sendMany = (rows: EventRow[]) => {
       const history = input.store.parsedEvents(id);
       const current = input.store.getMatch(id)!;
-      const position = positionAt(game, current.first_seat, history, viewer, event.seq);
-      const body = presentEvent({ seq: event.seq, type: event.type, payload }, match.game_id, viewer);
-      reply.raw.write(`id: ${event.seq}\ndata: ${JSON.stringify({ event: body, view: position.view, firstSeat: position.firstSeat, names: position.names })}\n\n`);
+      const presented = new Map(timeline(game, current.first_seat, history, viewer).map(event => [event.seq, event]));
+      for (const event of rows) {
+        if (seen.has(event.seq) || event.seq <= after) continue;
+        seen.add(event.seq);
+        const position = positionAt(game, current.first_seat, history, viewer, event.seq);
+        reply.raw.write(`id: ${event.seq}\ndata: ${JSON.stringify({ event: presented.get(event.seq), view: position.view, firstSeat: position.firstSeat, names: position.names })}\n\n`);
+      }
     };
     let live = false;
     const pending: EventRow[] = [];
     const unsubscribe = hub.subscribe(id, (event) => {
-      if (live) send(event);
+      if (live) sendMany([event]);
       else pending.push(event);
     });
     const statuses = runnerListeners.get(id) ?? new Set<(state: RunnerState) => void>();
@@ -361,9 +359,9 @@ export function createApp(input: { store: Store; env: NodeJS.ProcessEnv; complet
     reply.raw.on("close", cleanup);
     reply.raw.on("error", cleanup);
     if (match.status === "active") sendStatus(runnerState(id));
-    for (const event of input.store.events(id)) send(event);
+    sendMany(input.store.events(id));
     live = true;
-    for (const event of pending) send(event);
+    if (pending.length) sendMany(pending);
   });
 
   for (const id of input.store.activeMatchIds()) loop(id);
@@ -377,25 +375,31 @@ function viewerFor(store: Store, matchId: string, coach: Coach | undefined): Sea
   return seat ? seat.seat : "spectator";
 }
 
-function authPage(title: string, action: string, submit: string, error = ""): string {
+function invitationPath(value: unknown): string | undefined {
+  return typeof value === "string" && /^\/matches\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value) ? value : undefined;
+}
+
+function authPage(title: string, action: string, submit: string, error = "", next?: string): string {
   const email = action === "/login";
   return page({
     title,
+    authNext: next,
     body: `<div class="auth-layout"><section class="auth-intro"><div class="arena-diagram" aria-hidden="true">${gameGraphic("tictactoe")}${gameGraphic("four")}${gameGraphic("checkers")}${gameGraphic("fleet")}</div>
       <h1 class="page-title">${escapeHtml(title)}</h1><p class="body">Coach your agent. Watch it compete.</p><p class="auth-note body">Four games. Two agents. Every move recorded.</p></section>
       <section class="auth-form"><h2 class="section-title">${email ? "Welcome back" : "Your place on the sideline"}</h2>
       ${error ? `<p class="error" role="alert">${escapeHtml(error)}</p>` : ""}
       <form class="form" method="post" action="${action}">
+        ${next ? `<input type="hidden" name="next" value="${escapeHtml(next)}">` : ""}
         ${field("Email", "email", "", { type: "email" })}
         ${email ? "" : field("Display name", "displayName")}
         ${field("Password", "password", "", { type: "password" })}
         ${email ? "" : '<p class="field-help">Use at least 8 characters for your password.</p>'}
         <button class="pill pill-primary" type="submit">${escapeHtml(submit)}</button>
-      </form><p class="auth-switch body">${email ? 'New here? <a href="/register">Create a coach</a>' : 'Already registered? <a href="/login">Log in</a>'}</p></section></div>`,
+      </form><p class="auth-switch body">${email ? `New here? <a href="/register${next ? `?next=${encodeURIComponent(next)}` : ""}">Create a coach</a>` : `Already registered? <a href="/login${next ? `?next=${encodeURIComponent(next)}` : ""}">Log in</a>`}</p></section></div>`,
   });
 }
 
-function matchPage(store: Store, id: string, coach: Coach | undefined, error = "", runner?: RunnerState): string {
+function matchPage(store: Store, id: string, coach: Coach | undefined, error = "", runner?: RunnerState, modelReady = false): string {
   const match = store.getMatch(id);
   if (!match) return page({ title: "Missing", body: "<p>Match not found.</p>" });
   const seats = store.seats(id);
@@ -405,9 +409,15 @@ function matchPage(store: Store, id: string, coach: Coach | undefined, error = "
   const game = gameById(match.game_id)!;
   const parsed = store.parsedEvents(id);
   const view = viewFor(game, match.first_seat, parsed, viewer);
-  const events = parsed.map((event) => presentEvent(event, match.game_id, viewer));
+  const events = timeline(game, match.first_seat, parsed, viewer);
   const mine = coach ? seats.find((seat) => seat.coach_id === coach.id) : undefined;
   const canJoin = coach && match.status === "waiting" && !mine;
+  const path = `/matches/${id}`;
+  const next = encodeURIComponent(path);
+  const waiting = match.status !== "waiting" ? "" : `<div class="waiting-notice"><div>
+    <p class="body">${mine ? "Waiting for another coach. Share the match link below; opening it watches, and a signed-in coach must choose Join match." : coach ? "The second seat is open. Join match copies both coaches’ saved instructions and starts the agents." : "You are watching this invitation. Log in or create a coach, then choose Join match to take the open seat."}</p>
+    ${!modelReady ? '<p class="body">The model is not configured. Joining is unavailable until it is configured.</p>' : ""}</div>
+    ${canJoin ? `<form method="post" action="${path}/join"><button class="pill pill-primary" type="submit"${modelReady ? "" : " disabled"}>Join match</button></form>` : !coach ? `<div class="invitation-auth"><a class="pill pill-primary" href="/login?next=${next}">Log in to join</a><a class="pill pill-ghost" href="/register?next=${next}">Create a coach</a></div>` : ""}</div>`;
   const snapshots = seats
     .map((seat) => {
       const snap = JSON.parse(seat.snapshot_json || "{}") as {
@@ -437,12 +447,16 @@ function matchPage(store: Store, id: string, coach: Coach | undefined, error = "
   return page({
     title: labels[match.game_id],
     coachName: coach?.display_name,
-    body: `<div class="match-page first-seat-${match.first_seat ?? 0}"><div class="match-toolbar"><a class="back-link" href="${coach ? "/matches" : "/login"}">← ${coach ? "Matches" : "Log in"}</a><div class="match-meta"><span class="game-badge">${gameGraphic(match.game_id)}${labels[match.game_id]}</span><span class="view-label">${viewer === "spectator" ? "Spectator view" : "Your seat"}</span></div></div>
+    authNext: match.status === "waiting" ? path : undefined,
+    body: `<div class="match-page first-seat-${match.first_seat ?? 0}"><div class="match-toolbar"><a class="back-link" href="${coach ? "/matches" : `/login?next=${next}`}">← ${coach ? "Matches" : "Log in"}</a><div class="match-meta"><span class="game-badge">${gameGraphic(match.game_id)}${labels[match.game_id]}</span><span class="view-label">${viewer === "spectator" ? "Spectator view" : "Your seat"}</span></div></div>
       <div class="status-row"><h1 class="page-title match-title">${heading}</h1><p class="status-pill" role="status">${dot}<span id="match-status">${match.status === "finished" ? "Finished" : match.status === "waiting" ? "Waiting for opponent" : "In progress"}</span></p></div>
       ${error ? `<p class="error" role="alert">${escapeHtml(error)}</p>` : ""}
-      ${match.status === "waiting" ? `<div class="waiting-notice"><p class="body">${canJoin ? "Take the open seat to start this match." : "Share this page’s URL with another coach to start the match."}</p>${canJoin ? `<form method="post" action="/matches/${id}/join"><button class="pill pill-primary" type="submit">Join match</button></form>` : ""}</div>` : ""}
+      ${waiting}
+      <section class="match-invitation" aria-label="Share match"><label class="sr-only" for="match-link">Match link</label><input id="match-link" type="text" readonly value="${escapeHtml(path)}" aria-describedby="copy-link-status"><button id="copy-match-link" class="pill pill-ghost" type="button" hidden>Copy match link</button><p id="copy-link-status" class="body" role="status">You can also copy this page’s address.</p></section>
       <div class="arena-layout"><section class="board-frame" aria-label="Game position"><div class="arena-header"><h2 class="section-title">The board</h2><span class="board-game-name">${labels[match.game_id]}</span></div><div class="participant-rail">${participants}</div>${replayControls(boot.seq)}<div id="board" class="board-stage"></div><div class="arena-footer"><span class="latest-key"><span aria-hidden="true"></span>Latest move</span><span>${match.game_id === "fleet" && viewer === "spectator" ? "Both fleets visible" : "Server-validated moves"}</span></div></section>
         <section class="activity-panel" aria-labelledby="activity-title"><div class="activity-header"><div class="section-heading"><h2 id="activity-title" class="section-title">Agent activity</h2><span id="event-count" class="count-badge">${events.length}</span></div><p id="connection-status" class="connection-status" role="status">${match.status === "finished" ? "Match complete" : "Connecting…"}</p></div><a class="mobile-board-link" href="#replay-controls">View board ↑</a><ol id="events" class="events" tabindex="0" aria-label="Agent action history"></ol></section></div>
+      <section id="match-summary" class="panel match-summary" aria-labelledby="summary-heading" hidden><h2 id="summary-heading" class="section-title">Final match summary</h2><div id="summary-content"></div>
+        ${mine ? `<div class="post-match-actions"><a class="pill pill-ghost" href="/agent">Edit agent</a><form method="post" action="${path}/rematch"><button class="pill pill-primary" type="submit">Create rematch</button></form><p class="body">A rematch creates a new invitation for ${escapeHtml(labels[match.game_id])}. Share it with your opponent; they choose whether to join.</p></div>` : ""}</section>
       <section class="coaching-section"><div class="section-heading"><h2 class="section-title">Behind the moves</h2><span class="snapshot-tag">${match.status === "waiting" ? "Copied when play begins" : "Instructions at match start"}</span></div><div class="snapshots">${snapshots}</div></section></div>
       <script id="boot" type="application/json">${JSON.stringify(boot).replaceAll("<", "\\u003c")}</script>
       <script>window.__events = ${JSON.stringify(events).replaceAll("<", "\\u003c")};</script>
