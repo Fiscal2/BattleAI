@@ -107,9 +107,11 @@ test("a final summary appears on live completion during replay and supports edit
   await expect(page.locator(".participant-name").nth(0)).toHaveText("Turing");
   await expect(page.locator(".participant-name").nth(1)).toHaveText("Open seat");
   await expect(page.locator(".event-item")).toHaveCount(1);
+  await expect(page.locator("#connection-status")).toHaveText("Live");
   const joined = await page.request.post(`${rematch}/join`, { headers: { cookie: `session=${f.sessions[0]}` }, maxRedirects: 0 });
   expect(joined.status()).toBe(303);
-  await page.reload();
+  // The seated event reloads the waiting page; a second reload races that navigation.
+  await expect(page.locator("#match-status")).toHaveText("In progress");
   await expect(page.locator(".snapshot").first()).toContainText("Revised after replay");
 });
 
