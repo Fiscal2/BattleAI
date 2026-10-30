@@ -234,8 +234,14 @@ test("activity highlight leaves room for dots and the keyboard focus outline", a
   const { ids } = await fixtures(page);
   for (const width of [375, 560, 800, 1440]) {
     await page.setViewportSize({ width, height: 752 });
-    await page.goto(`/matches/${ids.tic}`);
-    const card = page.locator(".event-item").last();
+    await page.goto(`/matches/${ids.fleet}`);
+    await inspect(page, 3);
+    const card = page.locator('.event-item[data-seq="3"]');
+    const previous = page.locator('.event-item[data-seq="2"]');
+    const following = page.locator('.event-item[data-seq="4"]');
+    await expect(previous).toHaveCSS("border-bottom-color", "rgba(0, 0, 0, 0)");
+    await expect(card).toHaveCSS("border-bottom-color", "rgba(0, 0, 0, 0)");
+    await expect(following).not.toHaveCSS("border-bottom-color", "rgba(0, 0, 0, 0)");
     const button = card.locator(".event-select");
     await card.scrollIntoViewIfNeeded(); await button.hover(); await button.focus();
     const bounds = await card.boundingBox();
@@ -248,5 +254,8 @@ test("activity highlight leaves room for dots and the keyboard focus outline", a
     await expect(button).toBeFocused();
     await card.screenshot({ path: info.outputPath(`activity-${width}.png`) });
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    await inspect(page, 5);
+    await expect(previous).not.toHaveCSS("border-bottom-color", "rgba(0, 0, 0, 0)");
+    await expect(card).not.toHaveCSS("border-bottom-color", "rgba(0, 0, 0, 0)");
   }
 });
