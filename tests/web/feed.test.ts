@@ -111,7 +111,8 @@ describe("timeline DOM", () => {
     const card = eventCard(document.asDocument(), event, { ...context, game: "checkers" }, vi.fn()) as unknown as NodeFixture;
     expect(card.find("event-title")[0].textContent).toBe("Captured 2 pieces");
     expect(card.find("event-detail")[0].textContent).toContain("Promoted to king");
-    expect(card.find("event-select")[0].attributes["aria-label"]).toBe("Show position after #3: Bea, Captured 2 pieces, Promoted to king, 15, 22, 31");
+    expect(card.find("event-select")[0].attributes["aria-label"]).toBeUndefined();
+    expect(card.find("event-select")[0].textContent).toContain("Show position after: BeaAction#3Captured 2 piecesPromoted to king15→22→31");
     expect(card.textContent).not.toContain("captured");
     expect(card.textContent).not.toContain("promoted");
   });
@@ -123,7 +124,9 @@ describe("timeline DOM", () => {
     const button = card.find("event-select")[0];
     expect(button.tagName).toBe("button");
     expect(button.type).toBe("button");
-    expect(button.attributes["aria-label"]).toBe("Show position after #3: Bea, Placed X, r2c3");
+    expect(button.attributes["aria-label"]).toBeUndefined();
+    expect(button.textContent).toContain("Show position after: BeaAction#3Placed Xr2c3");
+    expect(button.find("event-graphic")[0].attributes["aria-hidden"]).toBe("true");
     expect(button.find("event-marker")).toHaveLength(1);
     expect(button.find("event-content")).toHaveLength(1);
     expect(button.find("event-graphic")).toHaveLength(1);

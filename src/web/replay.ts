@@ -40,6 +40,7 @@ export function createReplay(document: Document, matchId: string, initial: Posit
   });
 
   function update() {
+    const focused = document.activeElement;
     if (unseenLabel) {
       unseenLabel.textContent = unseen ? `${unseen} unseen event${unseen === 1 ? "" : "s"}` : "";
       unseenLabel.hidden = unseen === 0;
@@ -64,6 +65,8 @@ export function createReplay(document: Document, matchId: string, initial: Posit
       seek.value = String(target);
       seek.setAttribute("aria-valuetext", request ? `Loading position after #${target}` : description);
     }
+    // Boundary actions can disable their own button. Keep focus inside the replay controls.
+    if (focused && [prev, next, play, liveButton].some(control => control === focused && control?.disabled)) seek?.focus();
     const card = cards.get(selected.seq);
     if (card !== highlighted) {
       highlighted?.classList.remove("is-selected");
