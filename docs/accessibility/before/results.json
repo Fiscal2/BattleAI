@@ -1,0 +1,581 @@
+[
+  {
+    "page": "login",
+    "url": "http://127.0.0.1:3108/login",
+    "score": 1,
+    "version": "13.6.0",
+    "failures": []
+  },
+  {
+    "page": "register",
+    "url": "http://127.0.0.1:3108/register",
+    "score": 1,
+    "version": "13.6.0",
+    "failures": []
+  },
+  {
+    "page": "rankings",
+    "url": "http://127.0.0.1:3108/rankings",
+    "score": 1,
+    "version": "13.6.0",
+    "failures": []
+  },
+  {
+    "page": "agent",
+    "url": "http://127.0.0.1:3108/agent",
+    "score": 1,
+    "version": "13.6.0",
+    "failures": []
+  },
+  {
+    "page": "matches",
+    "url": "http://127.0.0.1:3108/matches",
+    "score": 1,
+    "version": "13.6.0",
+    "failures": []
+  },
+  {
+    "page": "tic",
+    "url": "http://127.0.0.1:3108/matches/ff17a3f7-0269-4d5d-8ef0-0f1cbdb4f145",
+    "score": 1,
+    "version": "13.6.0",
+    "failures": [
+      {
+        "id": "label-content-name-mismatch",
+        "title": "Elements with visible text labels do not have matching accessible names.",
+        "details": {
+          "type": "table",
+          "headings": [
+            {
+              "key": "node",
+              "valueType": "node",
+              "subItemsHeading": {
+                "key": "relatedNode",
+                "valueType": "node"
+              },
+              "label": "Failing Elements"
+            }
+          ],
+          "items": [
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-0-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,3,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 393,
+                  "bottom": 476,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 83
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #4: Turing, Placed O, r2c1\">",
+                "nodeLabel": "Turing\nAction\n#4\nPlaced O\nr2c1\nO",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            },
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-1-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,4,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 517,
+                  "bottom": 599,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 83
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #5: Ada, Placed X, r1c2\">",
+                "nodeLabel": "Ada\nAction\n#5\nPlaced X\nr1c2\nX",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            },
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-2-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,5,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 640,
+                  "bottom": 723,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 83
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #6: Turing, Placed O, r2c2\">",
+                "nodeLabel": "Turing\nAction\n#6\nPlaced O\nr2c2\nO",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            },
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-3-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,6,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 764,
+                  "bottom": 846,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 83
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #7: Ada, Placed X, r1c3\">",
+                "nodeLabel": "Ada\nAction\n#7\nPlaced X\nr1c3\nX",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            },
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-4-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,7,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 887,
+                  "bottom": 931,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 44
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #8: Ada, Ada wins\" aria-current=\"step\">",
+                "nodeLabel": "Ada\nResult\n#8\nAda wins",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            }
+          ],
+          "debugData": {
+            "type": "debugdata",
+            "impact": "serious",
+            "tags": [
+              "cat.semantics",
+              "wcag21a",
+              "wcag253",
+              "EN-301-549",
+              "EN-9.2.5.3",
+              "RGAAv4",
+              "RGAA-6.1.5"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "page": "four",
+    "url": "http://127.0.0.1:3108/matches/01224233-c51d-4abb-bbec-723b327640ce",
+    "score": 1,
+    "version": "13.6.0",
+    "failures": [
+      {
+        "id": "label-content-name-mismatch",
+        "title": "Elements with visible text labels do not have matching accessible names.",
+        "details": {
+          "type": "table",
+          "headings": [
+            {
+              "key": "node",
+              "valueType": "node",
+              "subItemsHeading": {
+                "key": "relatedNode",
+                "valueType": "node"
+              },
+              "label": "Failing Elements"
+            }
+          ],
+          "items": [
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-0-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,1,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 399,
+                  "bottom": 443,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 44
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #2: Turing, Joined the match\">",
+                "nodeLabel": "Turing\nSeat\n#2\nJoined the match",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            },
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-1-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,2,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 484,
+                  "bottom": 566,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 83
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #3: Ada, Dropped a disc, Column 4\">",
+                "nodeLabel": "Ada\nAction\n#3\nDropped a disc\nColumn 4",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            },
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-2-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,3,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 607,
+                  "bottom": 690,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 83
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #4: Turing, Dropped a disc, Column 3\">",
+                "nodeLabel": "Turing\nAction\n#4\nDropped a disc\nColumn 3",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            },
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-3-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,4,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 731,
+                  "bottom": 813,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 83
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #5: Ada, Dropped a disc, Column 4\">",
+                "nodeLabel": "Ada\nAction\n#5\nDropped a disc\nColumn 4",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            },
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-4-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,5,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 854,
+                  "bottom": 937,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 83
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #6: Turing, Dropped a disc, Column 3\" aria-current=\"step\">",
+                "nodeLabel": "Turing\nAction\n#6\nDropped a disc\nColumn 3",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            }
+          ],
+          "debugData": {
+            "type": "debugdata",
+            "impact": "serious",
+            "tags": [
+              "cat.semantics",
+              "wcag21a",
+              "wcag253",
+              "EN-301-549",
+              "EN-9.2.5.3",
+              "RGAAv4",
+              "RGAA-6.1.5"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "page": "checkers",
+    "url": "http://127.0.0.1:3108/matches/f21732cd-7a58-49be-bf1c-7e5a8f22d343",
+    "score": 1,
+    "version": "13.6.0",
+    "failures": [
+      {
+        "id": "label-content-name-mismatch",
+        "title": "Elements with visible text labels do not have matching accessible names.",
+        "details": {
+          "type": "table",
+          "headings": [
+            {
+              "key": "node",
+              "valueType": "node",
+              "subItemsHeading": {
+                "key": "relatedNode",
+                "valueType": "node"
+              },
+              "label": "Failing Elements"
+            }
+          ],
+          "items": [
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-0-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,5,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 355,
+                  "bottom": 438,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 83
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #6: Ada, Moved a piece, Path, 17, 14\">",
+                "nodeLabel": "Ada\nAction\n#6\nMoved a piece\nPath17→14",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            },
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-1-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,6,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 479,
+                  "bottom": 561,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 83
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #7: Turing, Captured 1 piece, Path, 9, 18\">",
+                "nodeLabel": "Turing\nAction\n#7\nCaptured 1 piece\nPath9→18",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            },
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-2-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,7,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 602,
+                  "bottom": 685,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 83
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #8: Ada, Captured 1 piece, Path, 22, 15\">",
+                "nodeLabel": "Ada\nAction\n#8\nCaptured 1 piece\nPath22→15",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            },
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-3-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,8,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 726,
+                  "bottom": 808,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 83
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #9: Turing, Captured 1 piece, Path, 10, 19\">",
+                "nodeLabel": "Turing\nAction\n#9\nCaptured 1 piece\nPath10→19",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            },
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-4-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,9,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 849,
+                  "bottom": 932,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 83
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #10: Ada, Captured 1 piece, Path, 23, 16\" aria-current=\"step\">",
+                "nodeLabel": "Ada\nAction\n#10\nCaptured 1 piece\nPath23→16",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            }
+          ],
+          "debugData": {
+            "type": "debugdata",
+            "impact": "serious",
+            "tags": [
+              "cat.semantics",
+              "wcag21a",
+              "wcag253",
+              "EN-301-549",
+              "EN-9.2.5.3",
+              "RGAAv4",
+              "RGAA-6.1.5"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "page": "fleet",
+    "url": "http://127.0.0.1:3108/matches/add971d4-0d07-405a-8a25-788537807e9b",
+    "score": 1,
+    "version": "13.6.0",
+    "failures": [
+      {
+        "id": "label-content-name-mismatch",
+        "title": "Elements with visible text labels do not have matching accessible names.",
+        "details": {
+          "type": "table",
+          "headings": [
+            {
+              "key": "node",
+              "valueType": "node",
+              "subItemsHeading": {
+                "key": "relatedNode",
+                "valueType": "node"
+              },
+              "label": "Failing Elements"
+            }
+          ],
+          "items": [
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-0-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,8,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 355,
+                  "bottom": 437,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 83
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #9: Ada, Shot hit, A3\">",
+                "nodeLabel": "Ada\nAction\n#9\nShot hit\nA3",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            },
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-1-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,9,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 478,
+                  "bottom": 561,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 83
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #10: Turing, Shot missed, F9\">",
+                "nodeLabel": "Turing\nAction\n#10\nShot missed\nF9",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            },
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-2-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,10,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 602,
+                  "bottom": 684,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 83
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #11: Ada, Shot hit, A4\">",
+                "nodeLabel": "Ada\nAction\n#11\nShot hit\nA4",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            },
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-3-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,11,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 725,
+                  "bottom": 808,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 83
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #12: Turing, Shot missed, H9\">",
+                "nodeLabel": "Turing\nAction\n#12\nShot missed\nH9",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            },
+            {
+              "node": {
+                "type": "node",
+                "lhId": "1-4-BUTTON",
+                "path": "1,HTML,1,BODY,2,MAIN,0,DIV,3,DIV,1,SECTION,2,OL,12,LI,0,BUTTON",
+                "selector": "section.activity-panel > ol#events > li.event-item > button.event-select",
+                "boundingRect": {
+                  "top": 849,
+                  "bottom": 931,
+                  "left": 898,
+                  "right": 1291,
+                  "width": 393,
+                  "height": 83
+                },
+                "snippet": "<button type=\"button\" class=\"event-select\" aria-label=\"Show position after #13: Ada, Sank a 5-cell ship, A5\" aria-current=\"step\">",
+                "nodeLabel": "Ada\nAction\n#13\nSank a 5-cell ship\nA5",
+                "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+              }
+            }
+          ],
+          "debugData": {
+            "type": "debugdata",
+            "impact": "serious",
+            "tags": [
+              "cat.semantics",
+              "wcag21a",
+              "wcag253",
+              "EN-301-549",
+              "EN-9.2.5.3",
+              "RGAAv4",
+              "RGAA-6.1.5"
+            ]
+          }
+        }
+      }
+    ]
+  }
+]

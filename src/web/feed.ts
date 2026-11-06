@@ -147,12 +147,17 @@ export function eventCard(document: Document, event: ShownEvent, context: FeedCo
     const button = target as HTMLButtonElement;
     button.type = "button";
     button.className = "event-select";
-    button.setAttribute("aria-label", `Show position after #${event.seq}: ${[formatted.agent, formatted.title, formatted.detail, ...formatted.coordinates].filter(Boolean).join(", ")}`);
+    button.append(element("span", "sr-only", "Show position after: "));
     button.addEventListener("click", () => onSelect(event.seq));
     item.append(button);
   }
   target.append(marker, content);
-  if (formatted.graphic) target.append(actionGraphic(document, formatted.graphic, formatted.coordinates.join(" → ")));
+  if (formatted.graphic) {
+    const graphic = actionGraphic(document, formatted.graphic, formatted.coordinates.join(" → "));
+    // Selectable cards already describe the move in text; avoid a duplicate image name.
+    if (onSelect) graphic.setAttribute("aria-hidden", "true");
+    target.append(graphic);
+  }
   return item;
 }
 

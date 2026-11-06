@@ -70,7 +70,7 @@ test("historical consequences survive reload/reconnect, while selected winning l
   await page.goto(`/matches/${f.ids.journeyCapture}`);
   await expect(page.locator('.event-item[data-seq="12"] .event-title')).toHaveText("Captured 2 pieces");
   await expect(page.locator('.event-item[data-seq="12"] .event-detail')).toContainText("Promoted to king");
-  await expect(page.locator('.event-item[data-seq="12"] .event-select')).toHaveAccessibleName(/Captured 2 pieces, Promoted to king/);
+  await expect(page.locator('.event-item[data-seq="12"] .event-select')).toHaveAccessibleName(/Captured 2 pieces Promoted to king/);
   await expect(page.locator("#summary-content")).toContainText("3 pieces captured");
   await expect(page.locator(".winning")).toHaveCount(0); // This match ended by forfeit.
   await page.goto(`/matches/${f.ids.journeyFour}`);

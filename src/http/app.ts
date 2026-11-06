@@ -392,8 +392,8 @@ function authPage(title: string, action: string, submit: string, error = "", nex
         ${next ? `<input type="hidden" name="next" value="${escapeHtml(next)}">` : ""}
         ${field("Email", "email", "", { type: "email" })}
         ${email ? "" : field("Display name", "displayName")}
-        ${field("Password", "password", "", { type: "password" })}
-        ${email ? "" : '<p class="field-help">Use at least 8 characters for your password.</p>'}
+        ${field("Password", "password", "", { type: "password", describedBy: email ? undefined : "password-help" })}
+        ${email ? "" : '<p id="password-help" class="field-help">Use at least 8 characters for your password.</p>'}
         <button class="pill pill-primary" type="submit">${escapeHtml(submit)}</button>
       </form><p class="auth-switch body">${email ? `New here? <a href="/register${next ? `?next=${encodeURIComponent(next)}` : ""}">Create a coach</a>` : `Already registered? <a href="/login${next ? `?next=${encodeURIComponent(next)}` : ""}">Log in</a>`}</p></section></div>`,
   });

@@ -43,7 +43,7 @@ export function page(input: { title: string; coachName?: string; body: string; a
     <a class="brand-name" href="/">${brandGraphic}<span>BattleAI</span></a>
     <nav class="nav-actions" aria-label="Main navigation">${account}</nav>
   </header>
-  <main id="main" class="container">${input.body}</main>
+  <main id="main" class="container" tabindex="-1">${input.body}</main>
 </body>
 </html>`;
 }
@@ -52,11 +52,11 @@ export function field(
   label: string,
   name: string,
   value = "",
-  options: { multiline?: boolean; type?: string } = {},
+  options: { multiline?: boolean; type?: string; describedBy?: string } = {},
 ): string {
   const control = options.multiline
     ? `<textarea name="${name}" rows="6">${escapeHtml(value)}</textarea>`
-    : `<input name="${name}" type="${options.type ?? "text"}" value="${escapeHtml(value)}">`;
+    : `<input name="${name}" type="${options.type ?? "text"}" value="${escapeHtml(value)}"${options.describedBy ? ` aria-describedby="${escapeHtml(options.describedBy)}"` : ""}>`;
   return `<label class="field"><span class="label-caps">${escapeHtml(label)}</span>${control}</label>`;
 }
 
