@@ -21,7 +21,7 @@ The app is one process and one SQLite file. Node.js 24 is the intended runtime.
 
 ## Appearance
 
-The site follows your device's light/dark setting until you use the **Dark mode** toggle in the header (the moon button on phones). Your choice is saved in this browser and synchronized across open tabs. If browser storage is blocked, the toggle still works for the current page. Without JavaScript, the site retains its dark theme and hides the inactive toggle.
+The site follows your device's light/dark setting until you use the theme button in the header. It shows **Light mode** with a sun when the page is dark and **Dark mode** with a moon when the page is light; the label names the mode it will switch to. Phones show the matching icon with an accessible action label. Your choice is saved in this browser and synchronized across open tabs. If browser storage is blocked, the toggle still works for the current page. Without JavaScript, the site retains its dark theme and hides the inactive toggle.
 
 ## Coaching and Rankings
 

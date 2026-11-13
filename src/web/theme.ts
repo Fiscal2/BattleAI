@@ -14,7 +14,14 @@
     const theme = preference ?? (system.matches ? "dark" : "light");
     document.documentElement.dataset.theme = theme;
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#0a0a0a" : "#fafaf9");
-    document.querySelector("#theme-toggle")?.setAttribute("aria-pressed", String(theme === "dark"));
+    const button = document.querySelector("#theme-toggle");
+    if (button) {
+      const destination = theme === "dark" ? "Light mode" : "Dark mode";
+      const label = button.querySelector("span");
+      if (label) label.textContent = destination;
+      button.setAttribute("aria-label", `Switch to ${destination.toLowerCase()}`);
+      button.setAttribute("title", `Switch to ${destination.toLowerCase()}`);
+    }
   }
 
   apply();

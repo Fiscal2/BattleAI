@@ -17,9 +17,9 @@ for (const theme of ["light", "dark"] as const) {
         for (const route of routes) {
           await page.goto(route);
           await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
-          const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+          const toggle = page.getByRole("button", { name: theme === "dark" ? "Switch to light mode" : "Switch to dark mode", exact: true });
           await expect(toggle).toBeVisible();
-          await expect(toggle).toHaveAttribute("aria-pressed", String(theme === "dark"));
+          await expect(toggle.locator("span")).toHaveText(theme === "dark" ? "Light mode" : "Dark mode");
           if (route === "/register") await expect(page.getByLabel("Password", { exact: true })).toHaveAccessibleDescription("Use at least 8 characters for your password.");
           await page.evaluate(() => document.fonts.ready);
           if (route.startsWith("/matches/")) await expect(page.locator(".event-select").first()).toBeVisible();

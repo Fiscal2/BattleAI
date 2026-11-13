@@ -7,12 +7,17 @@ async function expectTheme(page: Page, theme: Theme) {
   await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
   const toggle = page.locator("#theme-toggle");
   await expect(toggle).toBeVisible();
-  await expect(toggle).toHaveAccessibleName("Dark mode");
-  await expect(toggle).toHaveAttribute("aria-pressed", String(theme === "dark"));
+  const destination = theme === "dark" ? "Light mode" : "Dark mode";
+  await expect(toggle).toHaveAccessibleName(`Switch to ${destination.toLowerCase()}`);
+  await expect(toggle.locator("span")).toHaveText(destination);
+  await expect(toggle).toHaveAttribute("title", `Switch to ${destination.toLowerCase()}`);
+  await expect(toggle).not.toHaveAttribute("aria-pressed");
+  await expect(toggle.locator(`.theme-icon-${theme === "dark" ? "light" : "dark"}`)).toBeVisible();
+  await expect(toggle.locator(`.theme-icon-${theme}`)).toBeHidden();
 }
 
 async function tabToToggle(page: Page) {
-  const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+  const toggle = page.getByRole("button", { name: /^Switch to (light|dark) mode$/ });
   for (let i = 0; i < 20 && !(await toggle.evaluate(node => node === document.activeElement)); i++) {
     await page.keyboard.press("Tab");
   }
@@ -144,9 +149,9 @@ test("real tabs synchronize explicit choices and return to OS when the preferenc
   await other.goto("/rankings");
   await expectTheme(page, "light");
   await expectTheme(other, "light");
-  await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+  await page.getByRole("button", { name: /^Switch to (light|dark) mode$/ }).click();
   await expectTheme(other, "dark");
-  await other.getByRole("button", { name: "Dark mode", exact: true }).click();
+  await other.getByRole("button", { name: /^Switch to (light|dark) mode$/ }).click();
   await expectTheme(page, "light");
   await page.emulateMedia({ colorScheme: "dark" });
   await expectTheme(page, "light");
