@@ -1,28 +1,42 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-test("public and coach pages pass accessibility checks on desktop and phone", async ({ page, context }) => {
-  test.setTimeout(120_000);
-  const { ids, sessions } = await (await page.request.get("/__test/fixtures")).json();
+for (const theme of ["light", "dark"] as const) {
   for (const width of [1440, 390]) {
-    await page.setViewportSize({ width, height: 1000 });
     for (const signedIn of [false, true]) {
-      await context.clearCookies();
-      if (signedIn) await context.addCookies([{ name: "session", value: sessions[0], url: "http://127.0.0.1:3108" }]);
-      const routes = signedIn
-        ? ["/agent", "/matches", ...["tic", "four", "checkers", "fleet"].map(game => `/matches/${ids[game]}`)]
-        : ["/login", "/register", "/rankings"];
-      for (const route of routes) {
-        await page.goto(route);
-        if (route === "/register") await expect(page.getByLabel("Password", { exact: true })).toHaveAccessibleDescription("Use at least 8 characters for your password.");
-        await page.evaluate(() => document.fonts.ready);
-        if (route.startsWith("/matches/")) await expect(page.locator(".event-select").first()).toBeVisible();
-        const result = await new AxeBuilder({ page }).options({ rules: { "label-content-name-mismatch": { enabled: true } } }).analyze();
-        expect(result.violations, `${width}px ${route}: ${JSON.stringify(result.violations)}`).toEqual([]);
-      }
+      test(`${theme} ${width}px ${signedIn ? "coach" : "public"} pages pass accessibility and viewport checks`, async ({ page, context }) => {
+        test.setTimeout(60_000);
+        const { ids, sessions } = await (await page.request.get("/__test/fixtures")).json();
+        await page.setViewportSize({ width, height: 1000 });
+        await page.emulateMedia({ colorScheme: theme === "light" ? "dark" : "light" });
+        await page.addInitScript(value => localStorage.setItem("battleai-theme", value), theme);
+        if (signedIn) await context.addCookies([{ name: "session", value: sessions[0], url: "http://127.0.0.1:3108" }]);
+        const routes = signedIn
+          ? ["/agent", "/matches", ...["tic", "four", "checkers", "fleet"].map(game => `/matches/${ids[game]}`)]
+          : ["/login", "/register", "/rankings"];
+        for (const route of routes) {
+          await page.goto(route);
+          await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+          const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+          await expect(toggle).toBeVisible();
+          await expect(toggle).toHaveAttribute("aria-pressed", String(theme === "dark"));
+          if (route === "/register") await expect(page.getByLabel("Password", { exact: true })).toHaveAccessibleDescription("Use at least 8 characters for your password.");
+          await page.evaluate(() => document.fonts.ready);
+          if (route.startsWith("/matches/")) await expect(page.locator(".event-select").first()).toBeVisible();
+          const result = await new AxeBuilder({ page }).options({ rules: { "label-content-name-mismatch": { enabled: true } } }).analyze();
+          expect(result.violations, `${theme} ${width}px ${route}: ${JSON.stringify(result.violations)}`).toEqual([]);
+          if (width === 390) {
+            const dimensions = await page.evaluate(() => ({
+              viewport: document.documentElement.clientWidth,
+              content: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+            }));
+            expect(dimensions.content, `${theme} ${route} overflows the 390px viewport`).toBeLessThanOrEqual(dimensions.viewport);
+          }
+        }
+      });
     }
   }
-});
+}
 
 test("skip link transfers focus and replay works using only keyboard input", async ({ page }) => {
   const { ids } = await (await page.request.get("/__test/fixtures")).json();

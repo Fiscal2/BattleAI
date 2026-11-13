@@ -2,6 +2,7 @@ node_modules
 dist
 data
 public/client.js
+public/theme.js
 .env
 test-results
 playwright-report

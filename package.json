@@ -7,9 +7,9 @@
   },
   "scripts": {
     "test": "vitest run",
-    "build": "tsc -p tsconfig.json && tsc -p tsconfig.web.json && esbuild src/web/client.ts --bundle --minify --outfile=public/client.js --format=esm",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.web.json && esbuild src/web/client.ts --bundle --minify --outfile=public/client.js --format=esm && esbuild src/web/theme.ts --bundle --minify --outfile=public/theme.js --format=iife",
     "start": "node dist/server.js",
-    "dev": "esbuild src/web/client.ts --bundle --outfile=public/client.js --format=esm && tsx src/server.ts",
+    "dev": "esbuild src/web/client.ts --bundle --outfile=public/client.js --format=esm && esbuild src/web/theme.ts --bundle --outfile=public/theme.js --format=iife && tsx src/server.ts",
     "test:e2e": "npm run build && playwright test",
     "test:e2e:serve": "tsx tests/e2e/server.ts"
   },

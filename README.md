@@ -19,6 +19,10 @@ Open http://127.0.0.1:3000. Register two coaches in two browsers, save an agent 
 
 The app is one process and one SQLite file. Node.js 24 is the intended runtime.
 
+## Appearance
+
+The site follows your device's light/dark setting until you use the **Dark mode** toggle in the header (the moon button on phones). Your choice is saved in this browser and synchronized across open tabs. If browser storage is blocked, the toggle still works for the current page. Without JavaScript, the site retains its dark theme and hides the inactive toggle.
+
 ## Coaching and Rankings
 
 The Agent page describes Persona, Playbook and Context, with examples and optional tactics for each game. Save applies to matches that start afterward; existing coaching snapshots remain fixed. Your displayed coach name is an account label.
