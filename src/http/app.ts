@@ -138,6 +138,9 @@ export function createApp(input: { store: Store; env: NodeJS.ProcessEnv; complet
   app.get("/client.js", async (_request, reply) => {
     reply.type("text/javascript").send(await readFile(join(root, "public/client.js")));
   });
+  app.get("/theme.js", async (_request, reply) => {
+    reply.type("text/javascript").send(await readFile(join(root, "public/theme.js")));
+  });
   app.get("/fonts/:file", async (request, reply) => {
     const file = fonts[(request.params as { file: string }).file];
     if (!file) return reply.code(404).send("Not found.");

@@ -34,6 +34,7 @@ export function page(input: { title: string; coachName?: string; body: string; a
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${escapeHtml(input.title)}</title>
   <meta name="theme-color" content="#0a0a0a">
+  <script src="/theme.js"></script>
   <link rel="preload" href="/fonts/geist-400.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/app.css">
 </head>
@@ -41,7 +42,9 @@ export function page(input: { title: string; coachName?: string; body: string; a
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="top">
     <a class="brand-name" href="/">${brandGraphic}<span>BattleAI</span></a>
-    <nav class="nav-actions" aria-label="Main navigation">${account}</nav>
+    <nav class="nav-actions" aria-label="Main navigation">${account}
+      <button id="theme-toggle" class="pill pill-ghost theme-toggle" type="button" hidden><svg class="theme-icon-dark" viewBox="0 0 20 20" aria-hidden="true"><path d="M17 11A7 7 0 0 1 9 3a7 7 0 1 0 8 8Z"/></svg><svg class="theme-icon-light" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.5"/><path d="M10 1v2m0 14v2M1 10h2m14 0h2M3.6 3.6 5 5m10 10 1.4 1.4M3.6 16.4 5 15M15 5l1.4-1.4"/></svg><span>Light mode</span></button>
+    </nav>
   </header>
   <main id="main" class="container" tabindex="-1">${input.body}</main>
 </body>
